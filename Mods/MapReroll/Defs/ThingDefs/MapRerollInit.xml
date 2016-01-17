@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+	<ThingDef>
+        <defName>MapRerollInit</defName>
+        <category>Building</category>
+        <menuHidden>true</menuHidden>
+        <label>MapRerollInit</label>
+        <thingClass>Thing</thingClass>
+        <inspectorTabs>
+            <li>MapReroll.ModInitializer</li>
+        </inspectorTabs>
+    </ThingDef>
+
+</Defs>
