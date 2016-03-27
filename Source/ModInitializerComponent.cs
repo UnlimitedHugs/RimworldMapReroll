@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 using RimWorld;
-using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 using System.Linq;
@@ -13,6 +11,34 @@ namespace MapReroll {
 		private static bool popped;
 
 		public void FixedUpdate() {
+			if(Input.GetKeyDown(KeyCode.Keypad4)) {
+				/*var x = new Genstep_ScatterThings();
+				x.thingDefs = new List<ThingDef>(new[] { ThingDefOf.SteamGeyser });
+				x.minSpacing = 25;
+				x.extraNoBuildEdgeDist = 4;
+				x.countPer10kCellsRange = new FloatRange(0.7f, 1f);
+				x.clearSpaceSize = 30;
+				x.neededSurfaceType = TerrainAffordance.Heavy;
+				x.validators = new List<ScattererValidator>(new ScattererValidator[]{new ScattererValidator_Buildable(){radius = 4, affordance = TerrainAffordance.Heavy}, new ScattererValidator_NoNonNaturalEdifices(){radius = 4}});
+				*/
+				
+				// scrap all existing geysers
+				Thing.allowDestroyNonDestroyable = true;
+				Find.ListerThings.ThingsOfDef(ThingDefOf.SteamGeyser).ForEach(t => t.Destroy());
+				Thing.allowDestroyNonDestroyable = false;
+				
+				// find and re-run the geyser genstep
+				var mapGenDef = DefDatabase<MapGeneratorDef>.AllDefs.FirstOrDefault();
+				if (mapGenDef != null) {
+					var geyserGen = mapGenDef.genSteps.Find(g => {
+						var gen = g as Genstep_ScatterThings;
+						return gen != null && gen.thingDefs.Count == 1 && gen.thingDefs[0] == ThingDefOf.SteamGeyser;
+					});
+					if (geyserGen != null) {
+						geyserGen.Generate();
+					}
+				}
+			}
 			if (popped) return;
 			if(Input.GetKeyDown(KeyCode.Keypad5)) {
 				popped = true;
@@ -37,7 +63,9 @@ namespace MapReroll {
 				LongEventHandler.QueueLongEvent(newEventAction, "LoadingLongEvent".Translate());
 				
 			}
-			if(injectionPerformed || Game.Mode != GameMode.MapPlaying) return;
+			if (injectionPerformed || Game.Mode != GameMode.MapPlaying || Find.WindowStack == null) return;
+			MapRerollController.OnLevelLoaded();
+			RerollGUIController.Initialize();
 			injectionPerformed = true;
 
 			//var sec = Find.MapDrawer.SectionAt(new IntVec3());
@@ -53,6 +81,10 @@ namespace MapReroll {
 		public void OnLevelWasLoaded() {
 			injectionPerformed = false;
 			popped = false;
+		}
+
+		public void OnGUI() {
+			if(injectionPerformed) RerollGUIController.OnGUI();
 		}
 	}
 }

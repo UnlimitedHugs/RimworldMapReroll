@@ -12,6 +12,7 @@ namespace MapReroll {
 			obj = new GameObject("MapRerollLoader");
 			obj.AddComponent<ModInitializerComponent>();
 			Object.DontDestroyOnLoad(obj);
+			Log.Message("MapReroll initialized.");
 		}
 		
 		protected override void FillTab() {			

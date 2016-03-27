@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+	<MapRerollDef>
+        <defName>mapRerollSettings</defName>
+		<geyserRerollCost>1.0</geyserRerollCost>
+		<mapRerollCost>2.0</mapRerollCost>
+		<rerollTimeLimit>20000</rerollTimeLimit>
+        <enableInterface>true</enableInterface>
+        <useSillyLoadingMessages>true</useSillyLoadingMessages>
+		<numLoadingMessages>26</numLoadingMessages>
+    </MapRerollDef>
+
+</Defs>
