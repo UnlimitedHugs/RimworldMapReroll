@@ -5,31 +5,43 @@ using UnityEngine;
 using Verse;
 
 namespace MapReroll {
-	public static class MapRerollController {
+	public class MapRerollController {
 		public enum MapRerollType {
 			Map, Geyser
 		}
 
+		public static readonly string ModName = "Map Reroll";
+
+		private static MapRerollController instance;
+		public static MapRerollController Instance {
+			get {
+				return instance ?? (instance = new MapRerollController());
+			}
+		}
+
 		// feel free to use these to detect reroll events 
-		public static event Action OnMapRerolled;
-		public static event Action OnGeysersRerolled;
+		public event Action OnMapRerolled;
+		public event Action OnGeysersRerolled;
 
-		public static MapRerollDef SettingsDef { get; private set; }
+		public MapRerollDef SettingsDef { get; private set; }
 
-		public static float ResourcePercentageRemaining { get; private set; }
+		public float ResourcePercentageRemaining { get; private set; }
 
-		public static bool LogConsumedResourceAmounts = false;
-		public static bool disableOnLoadedMaps = true;
+		public bool LogConsumedResourceAmounts = false;
+		public bool disableOnLoadedMaps = true;
 
-		public static bool ShowInterface {
+		public bool ShowInterface {
 			get { return SettingsDef != null && SettingsDef.enableInterface && !Find.ColonyInfo.ColonyHasName && (!disableOnLoadedMaps || MapInitData.mapToLoad == null); }
 		}
 
-		private static bool mapRerollTriggered;
+		private bool mapRerollTriggered;
 
-		public static void OnLevelLoaded() {
+		public void Notify_OnLevelLoaded() {
 			SettingsDef = DefDatabase<MapRerollDef>.GetNamed("mapRerollSettings", false);
-			if(SettingsDef==null) Log.Warning("[MapReroll] Settings Def was not loaded. Powering down.");
+			if(SettingsDef==null) {
+				Log.Error("[MapReroll] Settings Def was not loaded.");
+				return;
+			}
 			if(mapRerollTriggered) {
 				ReduceMapResources(100-(ResourcePercentageRemaining), 100);
 				SubtractResourcePercentage(SettingsDef.mapRerollCost);
@@ -41,13 +53,15 @@ namespace MapReroll {
 			}
 		}
 
-		public static void RerollMap() {
+		public void RerollMap() {
 			mapRerollTriggered = true;
 			Action newEventAction = delegate {
 				var pawns = Find.ListerPawns.AllPawns.ToList();
 				foreach (var pawn in pawns) {
 					// preserve colonists for next map load
-					if (pawn.Faction == Faction.OfColony && pawn.SpawnedInWorld) {
+					if (pawn.IsColonist) {
+						pawn.ClearMind();
+						pawn.ClearReservations();
 						pawn.DeSpawn();
 					}
 				}
@@ -58,7 +72,7 @@ namespace MapReroll {
 			LongEventHandler.QueueLongEvent(newEventAction, GetLoadingMessage());
 		}
 		
-		public static void RerollGeysers() {
+		public void RerollGeysers() {
 			var geyserGen = TryGetGeyserGenstep();
 			if (geyserGen != null) {
 				// trash existing geysers
@@ -74,7 +88,7 @@ namespace MapReroll {
 			}
 		}
 
-		public static bool CanAffordOperation(MapRerollType type) {
+		public bool CanAffordOperation(MapRerollType type) {
 			float cost = 0;
 			switch (type) {
 				case MapRerollType.Map: cost = SettingsDef.mapRerollCost; break;
@@ -83,7 +97,7 @@ namespace MapReroll {
 			return ResourcePercentageRemaining >= cost;
 		}
 
-		private static void ReduceMapResources(float consumePercent, float currentResourcesAtPercent) {
+		private void ReduceMapResources(float consumePercent, float currentResourcesAtPercent) {
 			if (currentResourcesAtPercent == 0) return;
 			var allResourceDefs = DefDatabase<ThingDef>.AllDefs.Where(def => def.building != null && def.building.mineableScatterCommonality > 0).ToArray();
 			var rockDef = Find.World.NaturalRockTypesIn(Find.Map.WorldCoords).FirstOrDefault();
@@ -114,7 +128,7 @@ namespace MapReroll {
 
 		}
 
-		private static void SubtractResourcePercentage(float percent) {
+		private void SubtractResourcePercentage(float percent) {
 			ReduceMapResources(percent, ResourcePercentageRemaining);
 			ResourcePercentageRemaining = Mathf.Clamp(ResourcePercentageRemaining - percent, 0, 100);
 		}
@@ -122,14 +136,14 @@ namespace MapReroll {
 		// destroying a resource outright causes too much overhead: fog, area reveal, pathing, roof updates, etc
 		// we just want to replace it. So, we just despawn it and do some cleanup.
 		// Hopefully this won't cause any issues. Let me know, if you believe otherwise :)
-		private static void SneakilyDestroyResource(Thing res) {
+		private void SneakilyDestroyResource(Thing res) {
 			res.DeSpawn();
 			Find.ListerBuildings.Remove((Building) res);
 			Find.DesignationManager.RemoveAllDesignationsOn(res);
 			Find.DesignationManager.Notify_BuildingDestroyed(res);
 		}
 
-		private static Genstep_ScatterThings TryGetGeyserGenstep() {
+		private Genstep_ScatterThings TryGetGeyserGenstep() {
 			var mapGenDef = DefDatabase<MapGeneratorDef>.AllDefs.FirstOrDefault();
 			if (mapGenDef == null) return null;
 			var genstep = (Genstep_ScatterThings)mapGenDef.genSteps.Find(g => {
@@ -149,7 +163,7 @@ namespace MapReroll {
 			return newgen;
 		}
 
-		private static string GetLoadingMessage() {
+		private string GetLoadingMessage() {
 			if(SettingsDef.useSillyLoadingMessages) {
 				var messageIndex = UnityEngine.Random.Range(0, SettingsDef.numLoadingMessages - 1);
 				var messageKey = "MapReroll_loading" + messageIndex;
@@ -160,7 +174,7 @@ namespace MapReroll {
 			return "MapReroll_defaultLoadingMsg".Translate()+"...";
 		}
 
-		private static void KillIntroDialog() {
+		private void KillIntroDialog() {
 			Find.WindowStack.TryRemove(typeof(Dialog_NodeTree), false);
 		}
 	}

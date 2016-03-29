@@ -6,7 +6,7 @@
 		<mapRerollCost>2.0</mapRerollCost>
         <enableInterface>true</enableInterface>
         <useSillyLoadingMessages>true</useSillyLoadingMessages>
-		<numLoadingMessages>26</numLoadingMessages>
+		<numLoadingMessages>28</numLoadingMessages>
     </MapRerollDef>
 
 </Defs>
