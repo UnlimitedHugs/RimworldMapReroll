@@ -35,6 +35,7 @@ namespace MapReroll {
 		}
 
 		private bool mapRerollTriggered;
+		private string originalWorldSeed;
 
 		public void Notify_OnLevelLoaded() {
 			SettingsDef = DefDatabase<MapRerollDef>.GetNamed("mapRerollSettings", false);
@@ -46,10 +47,12 @@ namespace MapReroll {
 				ReduceMapResources(100-(ResourcePercentageRemaining), 100);
 				SubtractResourcePercentage(SettingsDef.mapRerollCost);
 				mapRerollTriggered = false;
+				Find.World.info.seedString = originalWorldSeed;
 				KillIntroDialog();
 				if(OnMapRerolled!=null) OnMapRerolled();
 			} else {
 				ResourcePercentageRemaining = 100f;
+				originalWorldSeed = Find.World.info.seedString;
 			}
 		}
 
