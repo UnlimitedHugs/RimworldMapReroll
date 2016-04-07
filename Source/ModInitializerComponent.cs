@@ -1,23 +1,28 @@
-﻿using UnityEngine;
+﻿using System.Reflection;
+using UnityEngine;
 using Verse;
 
 namespace MapReroll {
 	public class ModInitializerComponent : MonoBehaviour {
 		private bool initScheduled;
 		private PrepareCarefullyCompat prepareCompat;
-
+		
 		public void Start() {
-			if(MapRerollUtility.IsModActive(PrepareCarefullyCompat.ModName)) {
+			// Compat off for now, waiting for EdB to update
+			/*if(MapRerollUtility.IsModActive(PrepareCarefullyCompat.ModName)) {
 				prepareCompat = new PrepareCarefullyCompat();
 				prepareCompat.Initialize();
-			}
+			}*/
 		}
 
 		public void FixedUpdate() {
-			if (!initScheduled || Game.Mode != GameMode.MapPlaying || Find.WindowStack == null) return;
+			//RegionAndRoomUpdater.Enabled ensures we are executing after MapIniterUtility.FinalizeMapInit()
+			if (!initScheduled || Game.Mode != GameMode.MapPlaying || !RegionAndRoomUpdater.Enabled) return;
 			initScheduled = false;
-			MapRerollController.Instance.Notify_OnLevelLoaded();
-			RerollGUIWidget.Instance.Initialize();
+			LongEventHandler.ExecuteWhenFinished(() => { // this should execute after mapDrawer is initialized
+				MapRerollController.Instance.Notify_OnLevelLoaded();
+				RerollGUIWidget.Instance.Initialize();
+			});
 		}
 
 		public void OnLevelWasLoaded(int level){

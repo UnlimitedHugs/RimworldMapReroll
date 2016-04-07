@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -31,8 +33,10 @@ namespace MapReroll {
 		public bool disableOnLoadedMaps = true;
 
 		public bool ShowInterface {
-			get { return SettingsDef != null && SettingsDef.enableInterface && !Find.ColonyInfo.ColonyHasName && (!disableOnLoadedMaps || MapInitData.mapToLoad == null); }
+			get { return SettingsDef != null && SettingsDef.enableInterface && (Find.Map!=null && !Find.ColonyInfo.ColonyHasName) && (!disableOnLoadedMaps || MapInitData.mapToLoad == null); }
 		}
+
+		private readonly FieldInfo thingPrivateStateField = typeof(Thing).GetField("thingStateInt", BindingFlags.Instance | BindingFlags.NonPublic);
 
 		private bool mapRerollTriggered;
 		private string originalWorldSeed;
@@ -43,6 +47,9 @@ namespace MapReroll {
 				Log.Error("[MapReroll] Settings Def was not loaded.");
 				return;
 			}
+			// restore damaged MapInitData
+			MapInitData.colonists = GetAllColonistsOnMap();
+
 			if(mapRerollTriggered) {
 				ReduceMapResources(100-(ResourcePercentageRemaining), 100);
 				SubtractResourcePercentage(SettingsDef.mapRerollCost);
@@ -59,20 +66,27 @@ namespace MapReroll {
 		public void RerollMap() {
 			mapRerollTriggered = true;
 			Action newEventAction = delegate {
-				var pawns = Find.ListerPawns.AllPawns.ToList();
+				var pawns = GetAllColonistsOnMap();
 				foreach (var pawn in pawns) {
-					// preserve colonists for next map load
 					if (pawn.IsColonist) {
-						pawn.ClearMind();
-						pawn.ClearReservations();
-						pawn.DeSpawn();
+						// colonist might still be in pod
+						if (pawn.Spawned) {
+							pawn.ClearMind();
+							pawn.ClearReservations();
+							pawn.DeSpawn();
+						}
+						// clear relation with bonded pet
+						var bondedPet = pawn.relations.GetFirstDirectRelationPawn(PawnRelationDefOf.Bond);
+						if(bondedPet!=null) {
+							pawn.relations.RemoveDirectRelation(PawnRelationDefOf.Bond, bondedPet);
+						}
 					}
 				}
 				Find.World.info.seedString = Rand.Int.ToString();
 				MapInitData.mapToLoad = null;
 				Application.LoadLevel("Gameplay");
 			};
-			LongEventHandler.QueueLongEvent(newEventAction, GetLoadingMessage());
+			LongEventHandler.QueueLongEvent(newEventAction, GetLoadingMessage(), false, null);
 		}
 		
 		public void RerollGeysers() {
@@ -100,6 +114,11 @@ namespace MapReroll {
 			return ResourcePercentageRemaining >= cost;
 		}
 
+		// get all colonists, including those still in drop pods
+		private List<Pawn> GetAllColonistsOnMap() {
+			return Find.MapPawns.PawnsInFaction(Faction.OfColony).Where(p => p.IsColonist).ToList();
+		}
+
 		private void ReduceMapResources(float consumePercent, float currentResourcesAtPercent) {
 			if (currentResourcesAtPercent == 0) return;
 			var allResourceDefs = DefDatabase<ThingDef>.AllDefs.Where(def => def.building != null && def.building.mineableScatterCommonality > 0).ToArray();
@@ -111,12 +130,13 @@ namespace MapReroll {
 			var percentageChange = currentResourcesAtPercent - newResourceAmount;
 			var resourceToll = (int)Mathf.Ceil(Mathf.Abs(originalResAmount * (percentageChange/100)));
 
+			var toll = resourceToll;
 			if (mapResources.Count > 0) {
-				var toll = resourceToll;
 				// eat random resources
 				while (mapResources.Count > 0 && toll > 0) {
 					var resIndex = UnityEngine.Random.Range(0, mapResources.Count);
 					var resThing = mapResources[resIndex];
+
 					SneakilyDestroyResource(resThing);
 					mapResources.RemoveAt(resIndex);
 					// put some rock in their place
@@ -126,9 +146,10 @@ namespace MapReroll {
 					}
 					toll--;
 				}
-				if (LogConsumedResourceAmounts) Log.Message("[MapReroll] Ordered to consume " + consumePercent + "%, with current resources at " + currentResourcesAtPercent + "%. Eaten " + resourceToll + " resource spots, " + mapResources.Count + " left");
 			}
-
+			if (!LogConsumedResourceAmounts) return;
+			Log.Message("[MapReroll] Ordered to consume " + consumePercent + "%, with current resources at " + currentResourcesAtPercent + "%. Consuming " + resourceToll + " resource spots, " + mapResources.Count + " left");
+			if (toll > 0) Log.Message("[MapReroll] Failed to consume " + toll + " resource spots.");
 		}
 
 		private void SubtractResourcePercentage(float percent) {
@@ -138,12 +159,37 @@ namespace MapReroll {
 
 		// destroying a resource outright causes too much overhead: fog, area reveal, pathing, roof updates, etc
 		// we just want to replace it. So, we just despawn it and do some cleanup.
-		// Hopefully this won't cause any issues. Let me know, if you believe otherwise :)
+		// As of A13 despawning triggers all of the above. So, we do all the cleanup manually. Dirty, but necessary.
+		// The following is Thing.Despawn code with compromising parts stripped out, plus key parts from Building.Despawn
 		private void SneakilyDestroyResource(Thing res) {
-			res.DeSpawn();
+			Find.Map.listerThings.Remove(res);
+			Find.ThingGrid.Deregister(res);
+			Find.CoverGrid.DeRegister(res);
+			if (res.def.hasTooltip) {
+				Find.TooltipGiverList.DeregisterTooltipGiver(res);
+			}
+			if (res.def.graphicData != null && res.def.graphicData.Linked) {
+				LinkGrid.Notify_LinkerCreatedOrDestroyed(res);
+				Find.MapDrawer.MapMeshDirty(res.Position, MapMeshFlag.Things, true, false);
+			}
+			Find.Selector.Deselect(res);
+			if (res.def.drawerType != DrawerType.RealtimeOnly) {
+				CellRect cellRect = res.OccupiedRect();
+				for (int i = cellRect.minZ; i <= cellRect.maxZ; i++) {
+					for (int j = cellRect.minX; j <= cellRect.maxX; j++) {
+						Find.Map.mapDrawer.MapMeshDirty(new IntVec3(j, 0, i), MapMeshFlag.Things);
+					}
+				}
+			}
+			if (res.def.drawerType != DrawerType.MapMeshOnly) {
+				Find.DynamicDrawManager.DeRegisterDrawable(res);
+			}
+			thingPrivateStateField.SetValue(res, ThingState.Destroyed);
+			Find.TickManager.DeRegisterAllTickabilityFor(res);
+			Find.AttackTargetsCache.Notify_ThingDespawned(res);
+			// building-specific cleanup 
 			Find.ListerBuildings.Remove((Building) res);
 			Find.DesignationManager.RemoveAllDesignationsOn(res);
-			Find.DesignationManager.Notify_BuildingDestroyed(res);
 		}
 
 		private Genstep_ScatterThings TryGetGeyserGenstep() {
@@ -153,7 +199,7 @@ namespace MapReroll {
 				var gen = g as Genstep_ScatterThings;
 				return gen != null && gen.thingDefs.Count == 1 && gen.thingDefs[0] == ThingDefOf.SteamGeyser;
 			});
-			// make a shallow copy, since gensteps have internal state
+			// make a shallow copy, since that specific genstep has internal state
 			var newgen = new Genstep_ScatterThings {
 				thingDefs = genstep.thingDefs,
 				minSpacing = genstep.minSpacing,
@@ -167,17 +213,10 @@ namespace MapReroll {
 		}
 
 		private string GetLoadingMessage() {
-			if(SettingsDef.useSillyLoadingMessages) {
-				var messageIndex = UnityEngine.Random.Range(0, SettingsDef.numLoadingMessages - 1);
-				var messageKey = "MapReroll_loading" + messageIndex;
-				if (messageKey.CanTranslate()) {
-					return messageKey.Translate()+"...";
-				}
-			}
 			return "MapReroll_defaultLoadingMsg".Translate()+"...";
 		}
 
-		private void KillIntroDialog() {
+		private void KillIntroDialog(){
 			Find.WindowStack.TryRemove(typeof(Dialog_NodeTree), false);
 		}
 	}

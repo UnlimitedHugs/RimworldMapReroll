@@ -6,8 +6,6 @@ namespace MapReroll {
 		public float geyserRerollCost;
 		public float mapRerollCost;
 		public bool enableInterface;
-		public bool useSillyLoadingMessages;
-		public int numLoadingMessages;
 		
 	}
 }
