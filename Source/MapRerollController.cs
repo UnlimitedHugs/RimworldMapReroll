@@ -37,6 +37,7 @@ namespace MapReroll {
 		}
 
 		private readonly FieldInfo thingPrivateStateField = typeof(Thing).GetField("thingStateInt", BindingFlags.Instance | BindingFlags.NonPublic);
+		private readonly FieldInfo genstepScattererProtectedUsedSpots = typeof(Genstep_Scatterer).GetField("usedSpots", BindingFlags.Instance | BindingFlags.NonPublic);
 
 		private bool mapRerollTriggered;
 		private string originalWorldSeed;
@@ -49,6 +50,8 @@ namespace MapReroll {
 			}
 			// restore damaged MapInitData
 			MapInitData.colonists = GetAllColonistsOnMap();
+			// reset Genstep_Scatterer interal state
+			ResetScattererGensteps();
 
 			if(mapRerollTriggered) {
 				ReduceMapResources(100-(ResourcePercentageRemaining), 100);
@@ -92,12 +95,7 @@ namespace MapReroll {
 		public void RerollGeysers() {
 			var geyserGen = TryGetGeyserGenstep();
 			if (geyserGen != null) {
-				// trash existing geysers
-				Thing.allowDestroyNonDestroyable = true;
-				Find.ListerThings.ThingsOfDef(ThingDefOf.SteamGeyser).ForEach(t => t.Destroy());
-				Thing.allowDestroyNonDestroyable = false;
-				// poke some new ones
-				geyserGen.Generate();
+				TryGenerateGeysersWithNewLocations(geyserGen);
 				SubtractResourcePercentage(SettingsDef.geyserRerollCost);
 				if(OnGeysersRerolled!=null) OnGeysersRerolled();
 			} else {
@@ -117,6 +115,58 @@ namespace MapReroll {
 		// get all colonists, including those still in drop pods
 		private List<Pawn> GetAllColonistsOnMap() {
 			return Find.MapPawns.PawnsInFaction(Faction.OfColony).Where(p => p.IsColonist).ToList();
+		}
+
+		// Genstep_Scatterer instances build up internal state during generation
+		// if not reset, after enough rerolls, the map generator will fail to find spots to place geysers, items, resources, etc.
+		private void ResetScattererGensteps() {
+			var mapGenDef = DefDatabase<MapGeneratorDef>.AllDefs.FirstOrDefault();
+			if (mapGenDef == null) return;
+			foreach (var genstep in mapGenDef.genSteps) {
+				var genstepScatterer = genstep as Genstep_Scatterer;
+				if (genstepScatterer != null) {
+					ResetScattererGenstepInternalState(genstepScatterer);		
+				}
+			}
+		}
+
+		private void ResetScattererGenstepInternalState(Genstep_Scatterer genstep) {
+			// field is protected, use reflection
+			var usedSpots = (HashSet<IntVec3>) genstepScattererProtectedUsedSpots.GetValue(genstep);
+			if(usedSpots!=null) {
+				usedSpots.Clear();
+			}
+		}
+
+		// Genstep_ScatterThings is prone to generating things in the same spot on occasion.
+		// If that happens we try to run it a few more times to try and get new positions.
+		private void TryGenerateGeysersWithNewLocations(Genstep_ScatterThings geyserGen) {
+			const int MaxGeyserGenerationAttempts = 10;
+			var collisionsDetected = true;
+			var attemptsRemaining = MaxGeyserGenerationAttempts;
+			while (attemptsRemaining>0 && collisionsDetected) {
+				var usedSpots = new HashSet<IntVec3>(GetAllGeyserPositionsOnMap());
+				// destroy existing geysers
+				Thing.allowDestroyNonDestroyable = true;
+				Find.ListerThings.ThingsOfDef(ThingDefOf.SteamGeyser).ForEach(t => t.Destroy());
+				Thing.allowDestroyNonDestroyable = false;
+				// make new geysers
+				geyserGen.Generate();
+				// clean up internal state
+				ResetScattererGenstepInternalState(geyserGen);
+				// check if some geysers were generated in the same spots
+				collisionsDetected = false;
+				foreach (var geyserPos in GetAllGeyserPositionsOnMap()) {
+					if(usedSpots.Contains(geyserPos)) {
+						collisionsDetected = true;
+					}
+				}
+				attemptsRemaining--;
+			}
+		}
+
+		private IEnumerable<IntVec3> GetAllGeyserPositionsOnMap() {
+			return Find.ListerThings.ThingsOfDef(ThingDefOf.SteamGeyser).Select(t => t.Position);
 		}
 
 		private void ReduceMapResources(float consumePercent, float currentResourcesAtPercent) {
@@ -195,21 +245,10 @@ namespace MapReroll {
 		private Genstep_ScatterThings TryGetGeyserGenstep() {
 			var mapGenDef = DefDatabase<MapGeneratorDef>.AllDefs.FirstOrDefault();
 			if (mapGenDef == null) return null;
-			var genstep = (Genstep_ScatterThings)mapGenDef.genSteps.Find(g => {
+			return (Genstep_ScatterThings)mapGenDef.genSteps.Find(g => {
 				var gen = g as Genstep_ScatterThings;
 				return gen != null && gen.thingDefs.Count == 1 && gen.thingDefs[0] == ThingDefOf.SteamGeyser;
 			});
-			// make a shallow copy, since that specific genstep has internal state
-			var newgen = new Genstep_ScatterThings {
-				thingDefs = genstep.thingDefs,
-				minSpacing = genstep.minSpacing,
-				extraNoBuildEdgeDist = genstep.extraNoBuildEdgeDist,
-				countPer10kCellsRange = genstep.countPer10kCellsRange,
-				clearSpaceSize = genstep.clearSpaceSize,
-				neededSurfaceType = genstep.neededSurfaceType,
-				validators = genstep.validators
-			};
-			return newgen;
 		}
 
 		private string GetLoadingMessage() {

@@ -5,15 +5,6 @@ using Verse;
 namespace MapReroll {
 	public class ModInitializerComponent : MonoBehaviour {
 		private bool initScheduled;
-		private PrepareCarefullyCompat prepareCompat;
-		
-		public void Start() {
-			// Compat off for now, waiting for EdB to update
-			/*if(MapRerollUtility.IsModActive(PrepareCarefullyCompat.ModName)) {
-				prepareCompat = new PrepareCarefullyCompat();
-				prepareCompat.Initialize();
-			}*/
-		}
 
 		public void FixedUpdate() {
 			//RegionAndRoomUpdater.Enabled ensures we are executing after MapIniterUtility.FinalizeMapInit()
