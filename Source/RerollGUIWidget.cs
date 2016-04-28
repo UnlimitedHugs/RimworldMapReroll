@@ -3,8 +3,8 @@ using Verse;
 
 namespace MapReroll {
 	public class RerollGUIWidget {
-		private const float WidgetMargin = 10f;
-		private const float WidgetSize = 64f;
+		public const float WidgetMargin = 10f;
+		public static float WidgetSize = 48f;
 
 		private static RerollGUIWidget instance;
 		public static RerollGUIWidget Instance {
@@ -19,6 +19,7 @@ namespace MapReroll {
 		public void Initialize() {
 			UITex_OpenRerollDialog = ContentFinder<Texture2D>.Get("icon_inactive", false);
 			dialogWindow = new Dialog_RerollControls();
+			WidgetSize = MapRerollController.Instance.SettingsDef.diceWidgetSize;
 		}
 
 		public void OnGUI() {

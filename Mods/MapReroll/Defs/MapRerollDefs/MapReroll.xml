@@ -4,6 +4,7 @@
         <defName>mapRerollSettings</defName>
 		<geyserRerollCost>1.0</geyserRerollCost>
 		<mapRerollCost>2.0</mapRerollCost>
+		<diceWidgetSize>48</diceWidgetSize>
         <enableInterface>true</enableInterface>
     </MapRerollDef>
 

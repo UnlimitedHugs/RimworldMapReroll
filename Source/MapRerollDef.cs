@@ -6,6 +6,7 @@ namespace MapReroll {
 		public float geyserRerollCost;
 		public float mapRerollCost;
 		public bool enableInterface;
+		public float diceWidgetSize;
 		
 	}
 }

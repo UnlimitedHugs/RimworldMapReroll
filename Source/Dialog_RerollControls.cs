@@ -7,7 +7,6 @@ using Verse.Sound;
 namespace MapReroll {
 	public class Dialog_RerollControls : Window {
 		private const float ContentsPadding = 15f;
-		private const float DiceButtonSize = 64f;
 		private static readonly Texture2D UITex_CloseDialogDice = ContentFinder<Texture2D>.Get("icon_active", false);
 
 		private static readonly SoundDef steamSound = SoundDef.Named("RerollSteamVent");
@@ -39,11 +38,13 @@ namespace MapReroll {
 		}
 
 		public override void PostOpen() {
-			currentWindowRect = new Rect(Screen.width - InitialWindowSize.x - 10, 10, InitialWindowSize.x, InitialWindowSize.y);
+			const float windowMargin = RerollGUIWidget.WidgetMargin;
+			currentWindowRect = new Rect(Screen.width - InitialWindowSize.x - windowMargin, windowMargin, InitialWindowSize.x, InitialWindowSize.y);
 		}
 
 		public override void DoWindowContents(Rect inRect) {
-			var buttonRect = new Rect((inRect.width - DiceButtonSize) + WindowPadding, -WindowPadding, DiceButtonSize, DiceButtonSize);
+			float diceButtonSize = RerollGUIWidget.WidgetSize;
+			var buttonRect = new Rect((inRect.width - diceButtonSize) + WindowPadding, -WindowPadding, diceButtonSize, diceButtonSize);
 			if (Widgets.ImageButton(buttonRect, UITex_CloseDialogDice)) {
 				Close();
 			}
