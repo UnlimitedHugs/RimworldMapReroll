@@ -49,7 +49,10 @@ namespace MapReroll {
 				return;
 			}
 			// restore damaged MapInitData
-			MapInitData.colonists = GetAllColonistsOnMap();
+			// it's essential we ADD the pawns to the list, rather than assign a new list here. It sidesteps an oversight in the early release version of Prepare Carefully (A13)
+			foreach (var pawn in GetAllColonistsOnMap()) {
+				MapInitData.colonists.Add(pawn);
+			}
 			// reset Genstep_Scatterer interal state
 			ResetScattererGensteps();
 
