@@ -21,6 +21,9 @@ namespace MapReroll {
 			}
 		}
 
+		private const string LoadingMessageKey = "GeneratingMap";
+		private const string CustomLoadingMessageKeyBase = "MapReroll_loading";
+
 		// feel free to use these to detect reroll events 
 		public event Action OnMapRerolled;
 		public event Action OnGeysersRerolled;
@@ -30,29 +33,28 @@ namespace MapReroll {
 		public float ResourcePercentageRemaining { get; private set; }
 
 		public bool LogConsumedResourceAmounts = false;
-		public bool disableOnLoadedMaps = true;
 
 		public bool ShowInterface {
-			get { return SettingsDef != null && SettingsDef.enableInterface && (Find.Map!=null && !Find.ColonyInfo.ColonyHasName) && (!disableOnLoadedMaps || MapInitData.mapToLoad == null); }
+			get { return  Current.ProgramState == ProgramState.MapPlaying && SettingsDef != null && SettingsDef.enableInterface && Find.Map != null && !Faction.OfPlayer.HasName; }
 		}
 
-		private readonly FieldInfo thingPrivateStateField = typeof(Thing).GetField("thingStateInt", BindingFlags.Instance | BindingFlags.NonPublic);
-		private readonly FieldInfo genstepScattererProtectedUsedSpots = typeof(Genstep_Scatterer).GetField("usedSpots", BindingFlags.Instance | BindingFlags.NonPublic);
+		private FieldInfo thingPrivateStateField;
+		private FieldInfo genstepScattererProtectedUsedSpots;
+		private FieldInfo factionManagerAllFactions;
 
 		private bool mapRerollTriggered;
 		private string originalWorldSeed;
+		private GameInitData capturedInitData;
+		private string stockLoadingMessage;
 
 		public void Notify_OnLevelLoaded() {
 			SettingsDef = DefDatabase<MapRerollDef>.GetNamed("mapRerollSettings", false);
-			if(SettingsDef==null) {
+			PrepareReflectionReferences();
+			if(SettingsDef == null) {
 				Log.Error("[MapReroll] Settings Def was not loaded.");
 				return;
 			}
-			// restore damaged MapInitData
-			// it's essential we ADD the pawns to the list, rather than assign a new list here. It sidesteps an oversight in the early release version of Prepare Carefully (A13)
-			foreach (var pawn in GetAllColonistsOnMap()) {
-				MapInitData.colonists.Add(pawn);
-			}
+
 			// reset Genstep_Scatterer interal state
 			ResetScattererGensteps();
 
@@ -62,6 +64,7 @@ namespace MapReroll {
 				mapRerollTriggered = false;
 				Find.World.info.seedString = originalWorldSeed;
 				KillIntroDialog();
+				RestoreVanillaLoadingMessage();
 				if(OnMapRerolled!=null) OnMapRerolled();
 			} else {
 				ResourcePercentageRemaining = 100f;
@@ -70,31 +73,101 @@ namespace MapReroll {
 		}
 
 		public void RerollMap() {
+			if(mapRerollTriggered) return;
 			mapRerollTriggered = true;
-			Action newEventAction = delegate {
-				var pawns = GetAllColonistsOnMap();
-				foreach (var pawn in pawns) {
-					if (pawn.IsColonist) {
-						// colonist might still be in pod
-						if (pawn.Spawned) {
-							pawn.ClearMind();
-							pawn.ClearReservations();
-							pawn.DeSpawn();
-						}
-						// clear relation with bonded pet
-						var bondedPet = pawn.relations.GetFirstDirectRelationPawn(PawnRelationDefOf.Bond);
-						if(bondedPet!=null) {
-							pawn.relations.RemoveDirectRelation(PawnRelationDefOf.Bond, bondedPet);
-						}
+			//Action preLoadLevelAction = delegate {
+			var pawns = GetAllColonistsOnMap();
+			foreach (var pawn in pawns) {
+				if (pawn.IsColonist) {
+					// colonist might still be in pod
+					if (pawn.Spawned) {
+						pawn.ClearMind();
+						pawn.ClearReservations();
+						pawn.health.Reset();
+						pawn.DeSpawn();
+					}
+					// clear relation with bonded pet
+					var bondedPet = pawn.relations.GetFirstDirectRelationPawn(PawnRelationDefOf.Bond);
+					if(bondedPet != null) {
+						pawn.relations.RemoveDirectRelation(PawnRelationDefOf.Bond, bondedPet);
 					}
 				}
-				Find.World.info.seedString = Rand.Int.ToString();
-				MapInitData.mapToLoad = null;
-				Application.LoadLevel("Gameplay");
-			};
-			LongEventHandler.QueueLongEvent(newEventAction, GetLoadingMessage(), false, null);
+			}
+
+			Find.Selector.SelectedObjects.Clear();
+
+			// discard the old player faction so that scenarios can do their thing
+			DiscardWorldSquareFactions(capturedInitData.startingCoords);
+
+			var sameWorld = Current.Game.World;
+			var sameScenario = Current.Game.Scenario;
+
+			Current.ProgramState = ProgramState.Entry;
+			Current.Game = new Game();
+			var newInitData = Current.Game.InitData = new GameInitData();
+			Current.Game.Scenario = sameScenario;
+			Find.Scenario.PreConfigure();
+			newInitData.storyteller = capturedInitData.storyteller;
+			newInitData.difficulty = capturedInitData.difficulty;
+			newInitData.permadeath = capturedInitData.permadeath;
+			newInitData.startingCoords = capturedInitData.startingCoords;
+			newInitData.startingMonth = capturedInitData.startingMonth;
+			newInitData.mapSize = capturedInitData.mapSize;
+
+			Current.Game.World = sameWorld;
+			sameWorld.info.seedString = Rand.Int.ToString();
+
+			Find.Scenario.PostWorldLoad();
+			
+			MapIniter_NewGame.PrepForMapGen();
+			Find.Scenario.PreMapGenerate();
+
+			newInitData.startingPawns = capturedInitData.startingPawns;
+			foreach (var startingPawn in newInitData.startingPawns) {
+				startingPawn.SetFactionDirect(newInitData.playerFaction);
+			}
+
+			SetCustomLoadingMessage();
+			LongEventHandler.QueueLongEvent(() => { }, "Map", "GeneratingMap", true, null);
+			
 		}
-		
+
+		private void SetCustomLoadingMessage() {
+			var customLoadingMessage = stockLoadingMessage = LoadingMessageKey.Translate();
+
+			if(SettingsDef.useSillyLoadingMessages) {
+				var messageIndex = Rand.Range(0, SettingsDef.numLoadingMessages - 1);
+				var messageKey = CustomLoadingMessageKeyBase + messageIndex;
+				if (messageKey.CanTranslate()) {
+					customLoadingMessage = messageKey.Translate();
+				}
+			}
+
+			LanguageDatabase.activeLanguage.keyedReplacements[LoadingMessageKey] = customLoadingMessage;
+		}
+
+		private void RestoreVanillaLoadingMessage() {
+			LanguageDatabase.activeLanguage.keyedReplacements[LoadingMessageKey] = stockLoadingMessage;
+		}
+
+		private void PrepareReflectionReferences() {
+			thingPrivateStateField = typeof(Thing).GetField("thingStateInt", BindingFlags.Instance | BindingFlags.NonPublic);
+			genstepScattererProtectedUsedSpots = typeof(Genstep_Scatterer).GetField("usedSpots", BindingFlags.Instance | BindingFlags.NonPublic);
+			factionManagerAllFactions = typeof(FactionManager).GetField("allFactions", BindingFlags.Instance | BindingFlags.NonPublic);
+			if(thingPrivateStateField == null || genstepScattererProtectedUsedSpots == null || factionManagerAllFactions == null) {
+				Log.Error("Failed to get named fields by reflection");
+			}
+		}
+
+		private void DiscardWorldSquareFactions(IntVec2 square) {
+			var factionList = (List<Faction>)factionManagerAllFactions.GetValue(Find.FactionManager);
+			Faction faction;
+			while ((faction = Find.FactionManager.FactionInWorldSquare(square)) != null) {
+				faction.RemoveAllRelations();
+				factionList.Remove(faction);	
+			}
+		}
+
 		public void RerollGeysers() {
 			var geyserGen = TryGetGeyserGenstep();
 			if (geyserGen != null) {
@@ -115,9 +188,13 @@ namespace MapReroll {
 			return ResourcePercentageRemaining >= cost;
 		}
 
+		internal void SetCapturedInitData(GameInitData initData) {
+			capturedInitData = initData;
+		}
+
 		// get all colonists, including those still in drop pods
-		private List<Pawn> GetAllColonistsOnMap() {
-			return Find.MapPawns.PawnsInFaction(Faction.OfColony).Where(p => p.IsColonist).ToList();
+		private IEnumerable<Pawn> GetAllColonistsOnMap() {
+			return Find.MapPawns.PawnsInFaction(Faction.OfPlayer).Where(p => p.IsColonist).ToList();
 		}
 
 		// Genstep_Scatterer instances build up internal state during generation
@@ -237,7 +314,7 @@ namespace MapReroll {
 			if (res.def.drawerType != DrawerType.MapMeshOnly) {
 				Find.DynamicDrawManager.DeRegisterDrawable(res);
 			}
-			thingPrivateStateField.SetValue(res, ThingState.Destroyed);
+			thingPrivateStateField.SetValue(res, res.def.DiscardOnDestroyed ? ThingState.Discarded : ThingState.Memory);
 			Find.TickManager.DeRegisterAllTickabilityFor(res);
 			Find.AttackTargetsCache.Notify_ThingDespawned(res);
 			// building-specific cleanup 
@@ -250,7 +327,7 @@ namespace MapReroll {
 			if (mapGenDef == null) return null;
 			return (Genstep_ScatterThings)mapGenDef.genSteps.Find(g => {
 				var gen = g as Genstep_ScatterThings;
-				return gen != null && gen.thingDefs.Count == 1 && gen.thingDefs[0] == ThingDefOf.SteamGeyser;
+				return gen != null && gen.thingDef == ThingDefOf.SteamGeyser;
 			});
 		}
 

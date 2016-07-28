@@ -5,4 +5,37 @@
 	<MapReroll_rerollGeysersBtn>Reroll Geysers ({0}%)</MapReroll_rerollGeysersBtn>
 	<MapReroll_rerollMapBtn>Reroll Map ({0}%)</MapReroll_rerollMapBtn>
 	<MapReroll_defaultLoadingMsg>Generating Map</MapReroll_defaultLoadingMsg>
+	
+	<!-- optional loading messages, will default to defaultLoadingMsg-->
+	
+	<MapReroll_loading0>Bribing Fates</MapReroll_loading0>
+	<MapReroll_loading1>Reticulating Splines</MapReroll_loading1>
+	<MapReroll_loading2>Rewinding Time</MapReroll_loading2>
+	<MapReroll_loading3>Meanwhile, in Texas</MapReroll_loading3>
+	<MapReroll_loading4>Twiddling thumbs</MapReroll_loading4>
+	<MapReroll_loading5>Recreating universe</MapReroll_loading5>
+	<MapReroll_loading6>Shifting continents</MapReroll_loading6>
+	<MapReroll_loading7>Growing rocks</MapReroll_loading7>
+	<MapReroll_loading8>Breeding Thrumbos</MapReroll_loading8>
+	<MapReroll_loading9>You saw nothing</MapReroll_loading9>
+	<MapReroll_loading10>Cranking Magic</MapReroll_loading10>
+	<MapReroll_loading11>Poking God</MapReroll_loading11>
+	<MapReroll_loading12>Hiding treasure</MapReroll_loading12>
+	<MapReroll_loading13>Taunting mechanoids</MapReroll_loading13>
+	<MapReroll_loading14>Fueling OCD</MapReroll_loading14>
+	<MapReroll_loading15>Making More Better</MapReroll_loading15>
+	<MapReroll_loading16>Breaking rules</MapReroll_loading16>
+	<MapReroll_loading17>Draining oceans</MapReroll_loading17>
+	<MapReroll_loading18>Rolling dice</MapReroll_loading18>
+	<MapReroll_loading19>Compacting steel</MapReroll_loading19>
+	<MapReroll_loading20>Hiding gold</MapReroll_loading20>
+	<MapReroll_loading21>Flushing evidence</MapReroll_loading21>
+	<MapReroll_loading22>We must go deeper</MapReroll_loading22>
+	<MapReroll_loading23>'T was only a dream</MapReroll_loading23>
+	<MapReroll_loading24>Mocking pirates</MapReroll_loading24>
+	<MapReroll_loading25>Grinding gears</MapReroll_loading25>
+	<MapReroll_loading26>Fluffing bunnies</MapReroll_loading26>
+	<MapReroll_loading27>Refuelling Boomalopes</MapReroll_loading27>
+	<MapReroll_loading28>Rerolling hills</MapReroll_loading28>
+	<MapReroll_loading29>Flattening world</MapReroll_loading29>
 </LanguageData>

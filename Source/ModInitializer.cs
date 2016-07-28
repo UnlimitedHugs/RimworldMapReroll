@@ -4,6 +4,7 @@ using Object = UnityEngine.Object;
 using System.Linq;
 
 namespace MapReroll {
+	[StaticConstructorOnStartup]
 	public class ModInitializer : ITab {
 		
 		private static GameObject obj;

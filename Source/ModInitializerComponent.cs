@@ -7,7 +7,7 @@ namespace MapReroll {
 
 		public void FixedUpdate() {
 			//RegionAndRoomUpdater.Enabled ensures we are executing after MapIniterUtility.FinalizeMapInit()
-			if (!initScheduled || Game.Mode != GameMode.MapPlaying || !RegionAndRoomUpdater.Enabled) return;
+			if (!initScheduled || Current.ProgramState != ProgramState.MapPlaying || !RegionAndRoomUpdater.Enabled) return;
 			initScheduled = false;
 			LongEventHandler.ExecuteWhenFinished(() => { // this should execute after mapDrawer is initialized
 				MapRerollController.Instance.Notify_OnLevelLoaded();

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Defs>
-	<MapRerollDef>
-        <defName>mapRerollSettings</defName>
+	<MapReroll.MapRerollDef>
+		<defName>mapRerollSettings</defName>
 		<geyserRerollCost>1.0</geyserRerollCost>
 		<mapRerollCost>2.0</mapRerollCost>
+		<enableInterface>true</enableInterface>
 		<diceWidgetSize>48</diceWidgetSize>
-        <enableInterface>true</enableInterface>
-    </MapRerollDef>
-
+		<useSillyLoadingMessages>true</useSillyLoadingMessages>
+		<numLoadingMessages>30</numLoadingMessages>
+	</MapReroll.MapRerollDef>
 </Defs>
