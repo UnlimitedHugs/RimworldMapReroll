@@ -122,6 +122,8 @@ namespace MapReroll {
 			MapIniter_NewGame.PrepForMapGen();
 			Find.Scenario.PreMapGenerate();
 
+			StartingPawnUtility.ClearAllStartingPawns();
+
 			newInitData.startingPawns = capturedInitData.startingPawns;
 			foreach (var startingPawn in newInitData.startingPawns) {
 				startingPawn.SetFactionDirect(newInitData.playerFaction);
