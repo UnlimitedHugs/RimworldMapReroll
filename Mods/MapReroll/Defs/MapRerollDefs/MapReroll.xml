@@ -5,6 +5,8 @@
 		<geyserRerollCost>1.0</geyserRerollCost>
 		<mapRerollCost>2.0</mapRerollCost>
 		<enableInterface>true</enableInterface>
+		<interfaceOffset>(0, 0)</interfaceOffset>
+		<logConsumedResources>false</logConsumedResources>
 		<diceWidgetSize>48</diceWidgetSize>
 		<useSillyLoadingMessages>true</useSillyLoadingMessages>
 		<numLoadingMessages>30</numLoadingMessages>

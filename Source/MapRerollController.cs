@@ -32,10 +32,8 @@ namespace MapReroll {
 
 		public float ResourcePercentageRemaining { get; private set; }
 
-		public bool LogConsumedResourceAmounts = false;
-
 		public bool ShowInterface {
-			get { return  Current.ProgramState == ProgramState.MapPlaying && SettingsDef != null && SettingsDef.enableInterface && Find.Map != null && !Faction.OfPlayer.HasName; }
+			get { return Current.ProgramState == ProgramState.MapPlaying && SettingsDef != null && SettingsDef.enableInterface && Current.Game != null && Current.Game.Map != null && capturedInitData != null && !Faction.OfPlayer.HasName; }
 		}
 
 		private FieldInfo thingPrivateStateField;
@@ -101,20 +99,20 @@ namespace MapReroll {
 
 			var sameWorld = Current.Game.World;
 			var sameScenario = Current.Game.Scenario;
+			var sameStoryteller = Current.Game.storyteller;
 
 			Current.ProgramState = ProgramState.Entry;
 			Current.Game = new Game();
 			var newInitData = Current.Game.InitData = new GameInitData();
 			Current.Game.Scenario = sameScenario;
 			Find.Scenario.PreConfigure();
-			newInitData.storyteller = capturedInitData.storyteller;
-			newInitData.difficulty = capturedInitData.difficulty;
 			newInitData.permadeath = capturedInitData.permadeath;
 			newInitData.startingCoords = capturedInitData.startingCoords;
 			newInitData.startingMonth = capturedInitData.startingMonth;
 			newInitData.mapSize = capturedInitData.mapSize;
 
 			Current.Game.World = sameWorld;
+			Current.Game.storyteller = sameStoryteller;
 			sameWorld.info.seedString = Rand.Int.ToString();
 
 			Find.Scenario.PostWorldLoad();
@@ -154,7 +152,7 @@ namespace MapReroll {
 
 		private void PrepareReflectionReferences() {
 			thingPrivateStateField = typeof(Thing).GetField("thingStateInt", BindingFlags.Instance | BindingFlags.NonPublic);
-			genstepScattererProtectedUsedSpots = typeof(Genstep_Scatterer).GetField("usedSpots", BindingFlags.Instance | BindingFlags.NonPublic);
+			genstepScattererProtectedUsedSpots = typeof(GenStep_Scatterer).GetField("usedSpots", BindingFlags.Instance | BindingFlags.NonPublic);
 			factionManagerAllFactions = typeof(FactionManager).GetField("allFactions", BindingFlags.Instance | BindingFlags.NonPublic);
 			if(thingPrivateStateField == null || genstepScattererProtectedUsedSpots == null || factionManagerAllFactions == null) {
 				Log.Error("Failed to get named fields by reflection");
@@ -204,15 +202,15 @@ namespace MapReroll {
 		private void ResetScattererGensteps() {
 			var mapGenDef = DefDatabase<MapGeneratorDef>.AllDefs.FirstOrDefault();
 			if (mapGenDef == null) return;
-			foreach (var genstep in mapGenDef.genSteps) {
-				var genstepScatterer = genstep as Genstep_Scatterer;
+			foreach (var genStepDef in mapGenDef.GenStepsInOrder) {
+				var genstepScatterer = genStepDef.genStep as GenStep_Scatterer;
 				if (genstepScatterer != null) {
 					ResetScattererGenstepInternalState(genstepScatterer);		
 				}
 			}
 		}
 
-		private void ResetScattererGenstepInternalState(Genstep_Scatterer genstep) {
+		private void ResetScattererGenstepInternalState(GenStep_Scatterer genstep) {
 			// field is protected, use reflection
 			var usedSpots = (HashSet<IntVec3>) genstepScattererProtectedUsedSpots.GetValue(genstep);
 			if(usedSpots!=null) {
@@ -222,7 +220,7 @@ namespace MapReroll {
 
 		// Genstep_ScatterThings is prone to generating things in the same spot on occasion.
 		// If that happens we try to run it a few more times to try and get new positions.
-		private void TryGenerateGeysersWithNewLocations(Genstep_ScatterThings geyserGen) {
+		private void TryGenerateGeysersWithNewLocations(GenStep_ScatterThings geyserGen) {
 			const int MaxGeyserGenerationAttempts = 10;
 			var collisionsDetected = true;
 			var attemptsRemaining = MaxGeyserGenerationAttempts;
@@ -279,7 +277,7 @@ namespace MapReroll {
 					toll--;
 				}
 			}
-			if (!LogConsumedResourceAmounts) return;
+			if (!SettingsDef.logConsumedResources) return;
 			Log.Message("[MapReroll] Ordered to consume " + consumePercent + "%, with current resources at " + currentResourcesAtPercent + "%. Consuming " + resourceToll + " resource spots, " + mapResources.Count + " left");
 			if (toll > 0) Log.Message("[MapReroll] Failed to consume " + toll + " resource spots.");
 		}
@@ -291,8 +289,9 @@ namespace MapReroll {
 
 		// destroying a resource outright causes too much overhead: fog, area reveal, pathing, roof updates, etc
 		// we just want to replace it. So, we just despawn it and do some cleanup.
-		// As of A13 despawning triggers all of the above. So, we do all the cleanup manually. Dirty, but necessary.
-		// The following is Thing.Despawn code with compromising parts stripped out, plus key parts from Building.Despawn
+		// As of A13 despawning triggers all of the above. So, we do all the cleanup manually.
+		// This approach may break with future releases (if thing despawning changes), so it's worth checking over.
+		// The following is Thing.Despawn code with the unnecessary parts stripped out, plus key parts from Building.Despawn
 		private void SneakilyDestroyResource(Thing res) {
 			Find.Map.listerThings.Remove(res);
 			Find.ThingGrid.Deregister(res);
@@ -306,9 +305,9 @@ namespace MapReroll {
 			}
 			Find.Selector.Deselect(res);
 			if (res.def.drawerType != DrawerType.RealtimeOnly) {
-				CellRect cellRect = res.OccupiedRect();
-				for (int i = cellRect.minZ; i <= cellRect.maxZ; i++) {
-					for (int j = cellRect.minX; j <= cellRect.maxX; j++) {
+				var cellRect = res.OccupiedRect();
+				for (var i = cellRect.minZ; i <= cellRect.maxZ; i++) {
+					for (var j = cellRect.minX; j <= cellRect.maxX; j++) {
 						Find.Map.mapDrawer.MapMeshDirty(new IntVec3(j, 0, i), MapMeshFlag.Things);
 					}
 				}
@@ -324,17 +323,13 @@ namespace MapReroll {
 			Find.DesignationManager.RemoveAllDesignationsOn(res);
 		}
 
-		private Genstep_ScatterThings TryGetGeyserGenstep() {
+		private GenStep_ScatterThings TryGetGeyserGenstep() {
 			var mapGenDef = DefDatabase<MapGeneratorDef>.AllDefs.FirstOrDefault();
 			if (mapGenDef == null) return null;
-			return (Genstep_ScatterThings)mapGenDef.genSteps.Find(g => {
-				var gen = g as Genstep_ScatterThings;
+			return (GenStep_ScatterThings)mapGenDef.GenStepsInOrder.Find(g => {
+				var gen = g.genStep as GenStep_ScatterThings;
 				return gen != null && gen.thingDef == ThingDefOf.SteamGeyser;
-			});
-		}
-
-		private string GetLoadingMessage() {
-			return "MapReroll_defaultLoadingMsg".Translate()+"...";
+			}).genStep;
 		}
 
 		private void KillIntroDialog(){

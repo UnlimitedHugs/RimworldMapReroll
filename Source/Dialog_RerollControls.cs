@@ -42,7 +42,8 @@ namespace MapReroll {
 
 		public override void PostOpen() {
 			const float windowMargin = RerollGUIWidget.WidgetMargin;
-			windowRect = new Rect(Screen.width - InitialSize.x - windowMargin, windowMargin, InitialSize.x, InitialSize.y);
+			var widgetOffset = MapRerollController.Instance.SettingsDef.interfaceOffset + RerollGUIWidget.GetTutorOffset();
+			windowRect = new Rect(widgetOffset.x + (Screen.width - InitialSize.x - windowMargin), widgetOffset.y + windowMargin, InitialSize.x, InitialSize.y);
 		}
 
 		public override void DoWindowContents(Rect inRect) {

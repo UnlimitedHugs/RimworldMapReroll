@@ -7,16 +7,21 @@ namespace MapReroll {
 		public static float WidgetSize = 48f;
 
 		private static RerollGUIWidget instance;
+
 		public static RerollGUIWidget Instance {
-			get {
-				return instance ?? (instance = new RerollGUIWidget());
-			}
+			get { return instance ?? (instance = new RerollGUIWidget()); }
 		}
 
 		private Texture2D UITex_OpenRerollDialog;
 		private Dialog_RerollControls dialogWindow;
 		private bool firstInit = true;
 
+		public static Vector2 GetTutorOffset() {
+			if (!Find.Tutor.activeLesson.ActiveLessonVisible) return Vector2.zero;
+			const float tutorMargin = 8f;
+			const float tutorWidth = 310f;
+			return new Vector2(-(tutorWidth + tutorMargin + tutorMargin), 0);
+		}
 
 		public void Initialize() {
 			if(firstInit) {
@@ -34,7 +39,8 @@ namespace MapReroll {
 
 		public void OnGUI() {
 			if(!MapRerollController.Instance.ShowInterface) return;
-			var buttonRect = new Rect(Screen.width - WidgetMargin - WidgetSize, WidgetMargin, WidgetSize, WidgetSize);
+			var widgetOffset = MapRerollController.Instance.SettingsDef.interfaceOffset + GetTutorOffset();
+			var buttonRect = new Rect(widgetOffset.x + (Screen.width - WidgetMargin - WidgetSize), widgetOffset.y + WidgetMargin, WidgetSize, WidgetSize);
 			if (Widgets.ButtonImage(buttonRect, UITex_OpenRerollDialog)) {
 				Find.WindowStack.Add(dialogWindow);
 			}
