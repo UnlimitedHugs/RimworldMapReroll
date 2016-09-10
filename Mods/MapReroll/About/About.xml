@@ -1,13 +1,21 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
-  <name>Map Reroll</name>
-  <author>UnlimitedHugs</author>
-  
-  <description>Get your maps just the way you want them. Loaded dice not included.</description>
+	<name>Map Reroll</name>
+	<author>UnlimitedHugs</author>
+	<targetVersion>0.15.0</targetVersion>
+	<url>https://ludeon.com/forums/index.php?topic=18073.0</url>
+	
+	<description>&lt;size=20&gt;Description&lt;/size&gt;
+Allows you to randomize your starting map to help you find one you like. Getting new positions for just the steam geysers is also possible.
 
-  <targetVersion>0.15.0</targetVersion>
-<url>https://ludeon.com/forums/index.php?topic=18073.0</url>
+&lt;size=20&gt;How to use&lt;/size&gt;
+Start a new game. In the top right corner of the screen you will find a button with red dice. Click that.
+Use "Reroll Map" to get an entirely new starting map or "Reroll Geysers" to get random new geyser positions on the current map.
+Each operation will cost you an amount of unmined resources from the map- both the cost and the amount of remaining resources are displayed in the window.
 
+Note, that rerolling becomes unavailable after naming your colony or loading it from a save file.
 
-
+If you are using Community Core Library (CCL) you might want to temporarily disable the minimap, as it covers up the button.
+</description>	
+	
 </ModMetaData>
