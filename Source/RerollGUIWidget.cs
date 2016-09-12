@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using RimWorld;
+using UnityEngine;
 using Verse;
 
 namespace MapReroll {
@@ -17,10 +18,19 @@ namespace MapReroll {
 		private bool firstInit = true;
 
 		public static Vector2 GetTutorOffset() {
-			if (!Find.Tutor.activeLesson.ActiveLessonVisible) return Vector2.zero;
-			const float tutorMargin = 8f;
-			const float tutorWidth = 310f;
-			return new Vector2(-(tutorWidth + tutorMargin + tutorMargin), 0);
+			float tutorMargin = 0;
+			float tutorWindowWidth = 0;
+			if (Find.Tutor.activeLesson.ActiveLessonVisible) {
+				// active tutorial mode
+				tutorWindowWidth = 310f;
+				tutorMargin = 16f;
+			} else if(TutorSystem.AdaptiveTrainingEnabled && (Find.PlaySettings.showLearningHelper || Find.Tutor.learningReadout.ActiveConceptsCount>0)){
+				// concept panel
+				tutorWindowWidth = 200f;
+				tutorMargin = 8f;
+			}
+
+			return tutorWindowWidth > 0 ? new Vector2(-(tutorWindowWidth + tutorMargin), 0) : Vector2.zero;
 		}
 
 		public void Initialize() {
@@ -38,7 +48,7 @@ namespace MapReroll {
 		}
 
 		public void OnGUI() {
-			if(!MapRerollController.Instance.ShowInterface) return;
+			if(!MapRerollController.Instance.ShowInterface || Find.TickManager.TicksGame < 1) return;
 			var widgetOffset = MapRerollController.Instance.SettingsDef.interfaceOffset + GetTutorOffset();
 			var buttonRect = new Rect(widgetOffset.x + (Screen.width - WidgetMargin - WidgetSize), widgetOffset.y + WidgetMargin, WidgetSize, WidgetSize);
 			if (Widgets.ButtonImage(buttonRect, UITex_OpenRerollDialog)) {

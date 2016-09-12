@@ -33,7 +33,7 @@ namespace MapReroll {
 		public float ResourcePercentageRemaining { get; private set; }
 
 		public bool ShowInterface {
-			get { return Current.ProgramState == ProgramState.MapPlaying && SettingsDef != null && SettingsDef.enableInterface && Current.Game != null && Current.Game.Map != null && capturedInitData != null && !Faction.OfPlayer.HasName; }
+			get { return Current.ProgramState == ProgramState.MapPlaying && SettingsDef != null && !mapRerollTriggered && SettingsDef.enableInterface && Current.Game != null && Current.Game.Map != null && capturedInitData != null && !Faction.OfPlayer.HasName; }
 		}
 
 		private FieldInfo thingPrivateStateField;
