@@ -3,20 +3,14 @@ using UnityEngine;
 using Verse;
 
 namespace MapReroll {
+	[StaticConstructorOnStartup]
 	public class RerollGUIWidget {
 		public const float WidgetMargin = 10f;
-		public static float WidgetSize = 48f;
 
-		private static RerollGUIWidget instance;
+		private readonly Texture2D UITex_OpenRerollDialog = ContentFinder<Texture2D>.Get("icon_inactive", false);
 
-		public static RerollGUIWidget Instance {
-			get { return instance ?? (instance = new RerollGUIWidget()); }
-		}
-
-		private Texture2D UITex_OpenRerollDialog;
 		private Dialog_RerollControls dialogWindow;
-		private bool firstInit = true;
-
+		
 		public static Vector2 GetTutorOffset() {
 			float tutorMargin = 0;
 			float tutorWindowWidth = 0;
@@ -33,24 +27,18 @@ namespace MapReroll {
 			return tutorWindowWidth > 0 ? new Vector2(-(tutorWindowWidth + tutorMargin), 0) : Vector2.zero;
 		}
 
-		public void Initialize() {
-			if(firstInit) {
-				UITex_OpenRerollDialog = ContentFinder<Texture2D>.Get("icon_inactive", false);
-				dialogWindow = new Dialog_RerollControls();
-				MapRerollController.Instance.OnMapRerolled += InstanceOnOnMapRerolled;
-				firstInit = false;
+		public void Initialize(bool mapWasRerolled) {
+			if (dialogWindow == null) dialogWindow = new Dialog_RerollControls();
+			if (mapWasRerolled) {
+				Find.WindowStack.Add(dialogWindow);
 			}
-			WidgetSize = MapRerollController.Instance.SettingsDef.diceWidgetSize;
-		}
-
-		private void InstanceOnOnMapRerolled() {
-			Find.WindowStack.Add(dialogWindow);
 		}
 
 		public void OnGUI() {
 			if(!MapRerollController.Instance.ShowInterface || Find.TickManager.TicksGame < 1) return;
-			var widgetOffset = MapRerollController.Instance.SettingsDef.interfaceOffset + GetTutorOffset();
-			var buttonRect = new Rect(widgetOffset.x + (Screen.width - WidgetMargin - WidgetSize), widgetOffset.y + WidgetMargin, WidgetSize, WidgetSize);
+			var widgetOffset = GetTutorOffset();
+			var widgetSize = MapRerollController.Instance.WidgetSize;
+			var buttonRect = new Rect(widgetOffset.x + (Screen.width - WidgetMargin - widgetSize), widgetOffset.y + WidgetMargin, widgetSize, widgetSize);
 			if (Widgets.ButtonImage(buttonRect, UITex_OpenRerollDialog)) {
 				Find.WindowStack.Add(dialogWindow);
 			}

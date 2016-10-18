@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<JobDefs>
+	
+	<JobDef>
+		<defName>JobDef_OpenStash</defName>
+		<driverClass>MapReroll.JobDriver_OpenStash</driverClass>
+		<reportString>Breaking open stash.</reportString>
+	</JobDef>
+	
+</JobDefs>

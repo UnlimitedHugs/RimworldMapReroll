@@ -1,5 +1,4 @@
-﻿using System;
-using RimWorld;
+﻿using RimWorld;
 using UnityEngine;
 using Verse;
 using Verse.Sound;
@@ -42,12 +41,12 @@ namespace MapReroll {
 
 		public override void PostOpen() {
 			const float windowMargin = RerollGUIWidget.WidgetMargin;
-			var widgetOffset = MapRerollController.Instance.SettingsDef.interfaceOffset + RerollGUIWidget.GetTutorOffset();
+			var widgetOffset = RerollGUIWidget.GetTutorOffset();
 			windowRect = new Rect(widgetOffset.x + (Screen.width - InitialSize.x - windowMargin), widgetOffset.y + windowMargin, InitialSize.x, InitialSize.y);
 		}
 
 		public override void DoWindowContents(Rect inRect) {
-			float diceButtonSize = RerollGUIWidget.WidgetSize;
+			float diceButtonSize = MapRerollController.Instance.WidgetSize;
 			var buttonRect = new Rect((inRect.width - diceButtonSize) + Margin, -Margin, diceButtonSize, diceButtonSize);
 			if (Widgets.ButtonImage(buttonRect, UITex_CloseDialogDice)) {
 				Close();
@@ -57,10 +56,16 @@ namespace MapReroll {
 			Text.Font = GameFont.Medium;
 			Widgets.Label(new Rect(contentsRect.x, contentsRect.y, contentsRect.width, 30f), "MapReroll_windowTitle".Translate());
 			Text.Font = GameFont.Small;
-			Widgets.Label(new Rect(contentsRect.x, contentsRect.y + 40f, contentsRect.width, 25f), String.Format("MapReroll_oresLeft".Translate(), MapRerollController.Instance.ResourcePercentageRemaining));
+			var paidRerolls = MapRerollController.Instance.PaidRerolls;
+			var resourcesLabelText = paidRerolls ? "MapReroll_oresLeft".Translate(MapRerollController.Instance.ResourcePercentageRemaining) : "MapReroll_freeRerollsLabel".Translate();
+			Widgets.Label(new Rect(contentsRect.x, contentsRect.y + 40f, contentsRect.width, 25f), resourcesLabelText);
 			Text.Anchor = TextAnchor.UpperLeft;
-			var rerollMapHit = Widgets.ButtonText(new Rect(contentsRect.x, contentsRect.y + 80f, contentsRect.width, 40f), String.Format("MapReroll_rerollMapBtn".Translate(), MapRerollController.Instance.SettingsDef.mapRerollCost));
-			var rerollGeysersHit = Widgets.ButtonText(new Rect(contentsRect.x, contentsRect.y + 125f, contentsRect.width, 40f), String.Format("MapReroll_rerollGeysersBtn".Translate(), MapRerollController.Instance.SettingsDef.geyserRerollCost));
+			var mapCostSuffix = "MapReroll_resourceCost_suffix".Translate(MapRerollController.Instance.SettingsDef.mapRerollCost);
+			var rerollMapLabel = "MapReroll_rerollMapBtn".Translate(paidRerolls ? mapCostSuffix : "");
+			var rerollMapHit = Widgets.ButtonText(new Rect(contentsRect.x, contentsRect.y + 80f, contentsRect.width, 40f), rerollMapLabel);
+			var geyserCostSuffix = "MapReroll_resourceCost_suffix".Translate(MapRerollController.Instance.SettingsDef.geyserRerollCost);
+			var geyserRerollLabel = "MapReroll_rerollGeysersBtn".Translate(paidRerolls ? geyserCostSuffix : "");
+			var rerollGeysersHit = Widgets.ButtonText(new Rect(contentsRect.x, contentsRect.y + 125f, contentsRect.width, 40f), geyserRerollLabel);
 			if (rerollMapHit && CanAffordOperation(MapRerollController.MapRerollType.Map) && mapRerollTimeout==0) {
 				diceSound.PlayOneShotOnCamera();
 				mapRerollTimeout = Time.time + diceSoundDuration;

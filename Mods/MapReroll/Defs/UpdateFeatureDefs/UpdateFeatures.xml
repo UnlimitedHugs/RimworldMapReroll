@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+	<HugsLib.UpdateFeatureDef Abstract="true" Name="UpdateFeatureBase">
+		<defName>UpdateFeature</defName>
+		<modNameReadable>Map Reroll</modNameReadable>
+		<modIdentifier>MapReroll</modIdentifier>
+		<linkUrl>https://ludeon.com/forums/index.php?topic=18073</linkUrl>
+	</HugsLib.UpdateFeatureDef>
+	
+	<HugsLib.UpdateFeatureDef ParentName="UpdateFeatureBase">
+		<defName>MapReroll_1_4_0</defName>
+		<assemblyVersion>1.4.0</assemblyVersion>
+		<content>Map Reroll now comes with in-game settings and the ability to turn off all reroll costs! However, if you do, you will miss out on the shiny new &lt;b&gt;&lt;i&gt;secret feature&lt;/i&gt;&lt;/b&gt;.\nThe settings can be found in Options &gt; Mod Settings.</content>
+	</HugsLib.UpdateFeatureDef>
+	
+</Defs>

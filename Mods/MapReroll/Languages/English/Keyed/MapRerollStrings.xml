@@ -2,11 +2,24 @@
 <LanguageData>
 	<MapReroll_windowTitle>Map Reroll</MapReroll_windowTitle>
 	<MapReroll_oresLeft>Resources remaining: {0}%</MapReroll_oresLeft>
-	<MapReroll_rerollGeysersBtn>Reroll Geysers ({0}%)</MapReroll_rerollGeysersBtn>
-	<MapReroll_rerollMapBtn>Reroll Map ({0}%)</MapReroll_rerollMapBtn>
-	<MapReroll_defaultLoadingMsg>Generating Map</MapReroll_defaultLoadingMsg>
+	<MapReroll_rerollGeysersBtn>Reroll Geysers{0}</MapReroll_rerollGeysersBtn>
+	<MapReroll_rerollMapBtn>Reroll Map{0}</MapReroll_rerollMapBtn>
+	<MapReroll_resourceCost_suffix> ({0}%)</MapReroll_resourceCost_suffix>
+	<MapReroll_freeRerollsLabel>Reroll costs are disabled</MapReroll_freeRerollsLabel>
 	
-	<!-- optional loading messages, will default to defaultLoadingMsg-->
+	<MapReroll_stash_readInscription>Read inscription</MapReroll_stash_readInscription>
+	<MapReroll_stash_inscription>The inscription reads:\n"&lt;b&gt;Property of Dread Pirate Steve. Hands off, ya wanker!&quot;&lt;/b&gt;</MapReroll_stash_inscription>
+	
+	<setting_paidRerolls_label>Rerolls cost resources</setting_paidRerolls_label>
+<setting_paidRerolls_desc>When enabled, rerolling maps and geysers will cost unmined resources from the map.\nFree rerolls disable the &lt;b&gt;&lt;i&gt;secret feature&lt;/i&gt;&lt;/b&gt;.</setting_paidRerolls_desc>
+	<setting_loadingMessages_label>Custom loading messages</setting_loadingMessages_label>
+	<setting_loadingMessages_desc>Will display custom loading messages on the loading screen while rerolling a map.</setting_loadingMessages_desc>
+	<setting_widgetSize_label>Dice button size</setting_widgetSize_label>
+	<setting_widgetSize_desc>The size of the red dice button in pixels.</setting_widgetSize_desc>
+	<setting_logConsumption_label>Log consumed resources</setting_logConsumption_label>
+	<setting_logConsumption_desc>Writes the amounts of resources consumed by the reroll operations to the console.</setting_logConsumption_desc>
+	
+	<!-- optional loading messages, vanilla loading message will be used if none are found -->
 	
 	<MapReroll_loading0>Bribing Fates</MapReroll_loading0>
 	<MapReroll_loading1>Reticulating Splines</MapReroll_loading1>
@@ -35,7 +48,8 @@
 	<MapReroll_loading24>Mocking pirates</MapReroll_loading24>
 	<MapReroll_loading25>Grinding gears</MapReroll_loading25>
 	<MapReroll_loading26>Fluffing bunnies</MapReroll_loading26>
-	<MapReroll_loading27>Refuelling Boomalopes</MapReroll_loading27>
+	<MapReroll_loading27>Refueling Boomalopes</MapReroll_loading27>
 	<MapReroll_loading28>Rerolling hills</MapReroll_loading28>
 	<MapReroll_loading29>Flattening world</MapReroll_loading29>
+	<MapReroll_loading30>Preparing carefully</MapReroll_loading30>
 </LanguageData>

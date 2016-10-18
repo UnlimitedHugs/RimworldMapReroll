@@ -51,14 +51,23 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Source\BuildingProperties_PirateStash.cs" />
+    <Compile Include="Source\Building_PirateStash.cs" />
     <Compile Include="Source\Dialog_RerollControls.cs" />
-    <Compile Include="Source\MapComponent_InitDataInterceptor.cs" />
-    <Compile Include="Source\MapRerollUtility.cs" />
+    <Compile Include="Source\JobDriver_OpenStash.cs" />
+    <Compile Include="Source\MapRerollDefOf.cs" />
+    <Compile Include="Source\PrepareCarefullyCompat.cs" />
     <Compile Include="Source\RerollGUIWidget.cs" />
     <Compile Include="Source\MapRerollController.cs" />
     <Compile Include="Source\MapRerollDef.cs" />
-    <Compile Include="Source\ModInitializer.cs" />
-    <Compile Include="Source\ModInitializerComponent.cs" />
+    <Compile Include="Source\SerializedPawns.cs" />
+    <Compile Include="Source\WorkGiver_PirateStash.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HugsLib\HugsLib.csproj">
+      <Project>{a5d9bd45-533c-4ca0-9298-8950a3da724c}</Project>
+      <Name>HugsLib</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<WorkGivers>
+	
+	<WorkGiverDef>
+		<defName>BreakOpenStash</defName>
+		<label>break open stash</label>
+		<giverClass>MapReroll.WorkGiver_PirateStash</giverClass>
+		<workType>Construction</workType>
+		<priorityInType>100</priorityInType>
+		<verb>break open</verb>
+		<gerund>breaking open</gerund>
+	</WorkGiverDef>
+	
+</WorkGivers>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+	
+	<ThingDef Name="BuildingBase" Abstract="True">
+		<category>Building</category>
+		<soundImpactDefault>BulletImpactMetal</soundImpactDefault>
+		<selectable>true</selectable>
+		<drawerType>RealtimeOnly</drawerType>
+		<terrainAffordanceNeeded>Light</terrainAffordanceNeeded>
+		<repairEffect>Repair</repairEffect>
+		<leaveResourcesWhenKilled>false</leaveResourcesWhenKilled>
+		<filthLeaving>BuildingRubble</filthLeaving>
+	</ThingDef>
+	
+	<ThingDef ParentName="BuildingBase">
+		<DefName>PirateStash</DefName>
+		<category>Building</category>
+		<label>pirate stash</label>
+		<description>A weathered metal chest covered in dust. It is locked.</description>
+		<thingClass>MapReroll.Building_PirateStash</thingClass>
+		<graphicData>
+			<texPath>pirate_stash</texPath>
+			<graphicClass>Graphic_Single</graphicClass>
+			<shaderType>CutoutComplex</shaderType>
+			<drawSize>(1,1)</drawSize>
+			<damageData>
+				<rect>(0, .18, 1, .64)</rect>
+				<cornerTL>Damage/Corner</cornerTL>
+				<cornerTR>Damage/Corner</cornerTR>
+				<cornerBL>Damage/Corner</cornerBL>
+				<cornerBR>Damage/Corner</cornerBR>
+			</damageData>
+		</graphicData>
+		<useHitPoints>True</useHitPoints>
+		<statBases>
+			<MaxHitPoints>1200</MaxHitPoints>
+			<WorkToMake>600</WorkToMake>
+			<Flammability>0</Flammability>
+		</statBases>
+		<CostList>
+			<Steel>40</Steel>
+		</CostList>
+		<menuHidden>true</menuHidden>
+		<Size>(1,1)</Size>
+		<leaveResourcesWhenKilled>false</leaveResourcesWhenKilled>
+		<AltitudeLayer>Building</AltitudeLayer>
+		<fillPercent>0.5</fillPercent>
+		<passability>PassThroughOnly</passability>
+		<pathCost>60</pathCost>
+		<tickerType>Normal</tickerType>
+		<rotatable>false</rotatable>
+		<building Class="MapReroll.BuildingProperties_PirateStash">
+			<repairable>false</repairable>
+			<claimable>false</claimable>
+			
+			<contentsDefs>
+				<li>Silver</li>
+				<li>Gold</li>
+				<li>Component</li>
+			</contentsDefs>
+			<contentsAmounts>
+				<li><min>600</min><max>2500</max></li>
+				<li><min>50</min><max>350</max></li>
+				<li><min>20</min><max>60</max></li>
+			</contentsAmounts>
+			<dropStackLimits>
+				<li>25</li>
+				<li>25</li>
+				<li>10</li>
+			</dropStackLimits>
+			<openWorkAmount>800</openWorkAmount>
+			<openSoundDef>CryptosleepCasketEject</openSoundDef>
+			<commonality>2.0</commonality> <!-- with all resources consumed, this is how many stashes will be created on a standard sized map on average -->
+			<mapSizeCommonalityBias>1.0</mapSizeCommonalityBias> <!-- added to commonality based on map size. multiplied by 1 on largest map, ~-0.6 on smallest -->
+		</building>
+	</ThingDef> 
+	
+</Defs>
