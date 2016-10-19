@@ -97,6 +97,7 @@ namespace MapReroll {
 
 		public override void MapComponentsInitializing() {
 			capturedInitData = Current.Game.InitData;
+			if (capturedInitData == null) return;
 			cannedColonists = new SerializedPawns(capturedInitData.startingPawns);
 		}
 
