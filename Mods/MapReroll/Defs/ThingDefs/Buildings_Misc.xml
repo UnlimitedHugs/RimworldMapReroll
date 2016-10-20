@@ -30,6 +30,9 @@
 				<cornerBL>Damage/Corner</cornerBL>
 				<cornerBR>Damage/Corner</cornerBR>
 			</damageData>
+			<shadowData>
+				<volume>(1, 0.5, .64)</volume>
+			</shadowData>
 		</graphicData>
 		<useHitPoints>True</useHitPoints>
 		<statBases>

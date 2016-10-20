@@ -91,6 +91,9 @@ namespace MapReroll {
 				Logger.Warning("There is more than one MapGeneratorDef in the database. Cannot guarantee consistent behaviour.");
 			}
 			PrepareReflectionReferences();
+		}
+
+		public override void DefsLoaded() {
 			numAvailableLoadingMessages = CountAvailableLoadingMessages();
 			PrepareSettingsHandles();
 		}
