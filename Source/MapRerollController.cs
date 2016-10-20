@@ -97,8 +97,11 @@ namespace MapReroll {
 
 		public override void MapComponentsInitializing() {
 			capturedInitData = Current.Game.InitData;
-			if (capturedInitData == null) return;
-			cannedColonists = new SerializedPawns(capturedInitData.startingPawns);
+			if (capturedInitData == null) return; // on a loaded map
+			var colonistsToCan = capturedInitData.startingPawns;
+			var pcColonists = PrepareCarefullyCompat.Instance.TryGetCustomColonists(); // this call happens before PC can replace starting pawns
+			if (pcColonists != null) colonistsToCan = pcColonists;
+			cannedColonists = new SerializedPawns(colonistsToCan);
 		}
 
 		public override void MapLoaded() {
@@ -201,7 +204,7 @@ namespace MapReroll {
 				foreach (var startingPawn in newInitData.startingPawns) {
 					startingPawn.SetFactionDirect(newInitData.playerFaction);
 				}
-				PrepareCarefullyCompat.UpdateCustomColonists(newInitData.startingPawns);
+				PrepareCarefullyCompat.Instance.UpdateCustomColonists(newInitData.startingPawns);
 
 				// precaution against social tab errors, this shouldn't be necessary
 				foreach (var relative in cannedColonists.GetOffMapRelatives()) {

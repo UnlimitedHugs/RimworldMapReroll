@@ -9,34 +9,66 @@ namespace MapReroll {
 	 * A compatibility fix for PrepareCarefully.
 	 * Since we are now generating new pawn instances on reroll, and PC keeps an internal list of spawned pawns, 
 	 * that list needs updating- otherwise we'll see discarded pawns being spawned back in.
+	 * Another issue is that our GameInitData.startingPawns interception happens *before* PrepareCarefully fills in its custom colonists,
+	 * so we need to pull the correct colonists from the controller.
 	 */
-	public static class PrepareCarefullyCompat {
+	public class PrepareCarefullyCompat {
 		private const string PrepareCarefullyTypeName = "EdB.PrepareCarefully.PrepareCarefully";
 		private const string InstanceFieldName = "instance";
 		private const string ColonistsFieldName = "colonists";
+		private const string ActiveFieldName = "active";
 
-		public static void UpdateCustomColonists(IEnumerable<Pawn> colonists) {
-			var pcType = GenTypes.GetTypeInAnyAssembly(PrepareCarefullyTypeName);
-			if(pcType == null) return;
-			var instanceField = GetPCField(pcType, InstanceFieldName, BindingFlags.NonPublic | BindingFlags.Static, pcType);
-			if(instanceField == null) return;
-			var inst = instanceField.GetValue(null);
-			if(inst == null) return;
-			var colonistsField = GetPCField(pcType, ColonistsFieldName, BindingFlags.NonPublic | BindingFlags.Instance, typeof(List<Pawn>));
-			if(colonistsField == null) return;
-			colonistsField.SetValue(inst, colonists.ToList()); // you can have a copy, thank you very much- not making that mistake again :)
+		private static PrepareCarefullyCompat instance;
+		public static PrepareCarefullyCompat Instance {
+			get { return instance ?? (instance = new PrepareCarefullyCompat()); }
 		}
 
-		private static FieldInfo GetPCField(Type pcType, string fieldName, BindingFlags flags, Type expectedType) {
+		private bool reflectionPerformed;
+		private Type controllerType;
+		private FieldInfo controllerColonistsField;
+		private FieldInfo controllerActiveField;
+		private object controllerInstance;
+
+
+		private PrepareCarefullyCompat() {
+		}
+
+		public List<Pawn> TryGetCustomColonists() {
+			if (!reflectionPerformed) ReflectRequiredFields();
+			if (!ControllerIsActive()) return null;
+			return (List<Pawn>) controllerColonistsField.GetValue(controllerInstance);
+		} 
+
+		public void UpdateCustomColonists(IEnumerable<Pawn> colonists) {
+			if (!reflectionPerformed) ReflectRequiredFields();
+			if (!ControllerIsActive()) return;
+			controllerColonistsField.SetValue(controllerInstance, colonists.ToList()); // you can have a copy, thank you very much- not making that mistake again :)
+		}
+
+		private void ReflectRequiredFields() {
+			reflectionPerformed = true;
+			try {
+				controllerType = GenTypes.GetTypeInAnyAssembly(PrepareCarefullyTypeName);
+				if (controllerType == null) return;
+				controllerActiveField = GetPCField(controllerType, ActiveFieldName, BindingFlags.NonPublic | BindingFlags.Instance, typeof (bool));
+				var instanceField = GetPCField(controllerType, InstanceFieldName, BindingFlags.NonPublic | BindingFlags.Static, controllerType);
+				controllerInstance = instanceField.GetValue(null);
+				if (controllerInstance == null) throw new Exception("controller instance is null");
+				controllerColonistsField = GetPCField(controllerType, ColonistsFieldName, BindingFlags.NonPublic | BindingFlags.Instance, typeof (List<Pawn>));
+			} catch (Exception e) {
+				MapRerollController.Instance.Logger.Warning("PrepareCarefully compat failure: "+e);
+				controllerType = null;
+			}
+		}
+
+		private bool ControllerIsActive() {
+			return controllerType != null && (bool) controllerActiveField.GetValue(controllerInstance);
+		}
+
+		private FieldInfo GetPCField(Type pcType, string fieldName, BindingFlags flags, Type expectedType) {
 			var field = pcType.GetField(fieldName, flags);
-			if (field == null) {
-				MapRerollController.Instance.Logger.Warning("PrepareCarefully compat failure: could not reflect field: "+fieldName);
-				return null;
-			}
-			if (field.FieldType != expectedType) {
-				MapRerollController.Instance.Logger.Warning("PrepareCarefully compat failure: field did not match expected type: " + fieldName);
-				return null;
-			}
+			if (field == null) throw new Exception("could not reflect field: "+fieldName);
+			if (field.FieldType != expectedType) throw new Exception("field did not match expected type: " + fieldName);
 			return field;
 		}
 	}
