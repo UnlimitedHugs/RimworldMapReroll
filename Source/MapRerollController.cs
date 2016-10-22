@@ -71,7 +71,6 @@ namespace MapReroll {
 		private bool mapRerollTriggered;
 		private string originalWorldSeed;
 		private GameInitData capturedInitData;
-		private SerializedPawns cannedColonists;
 		private string stockLoadingMessage;
 		private int numAvailableLoadingMessages;
 		private int originalMapResourceCount;
@@ -80,6 +79,7 @@ namespace MapReroll {
 		private SettingHandle<bool> settingLoadingMessages; 
 		private SettingHandle<int>  settingWidgetSize;
 		private SettingHandle<bool> settingLogConsumedResources;
+		private SettingHandle<bool> settingNoVomiting;
 
 		private MapRerollController() {
 			instance = this;
@@ -100,11 +100,10 @@ namespace MapReroll {
 
 		public override void MapComponentsInitializing() {
 			capturedInitData = Current.Game.InitData;
-			if (capturedInitData == null) return; // on a loaded map
-			var colonistsToCan = capturedInitData.startingPawns;
-			var pcColonists = PrepareCarefullyCompat.Instance.TryGetCustomColonists(); // this call happens before PC can replace starting pawns
-			if (pcColonists != null) colonistsToCan = pcColonists;
-			cannedColonists = new SerializedPawns(colonistsToCan);
+			if (Scribe.mode == LoadSaveMode.LoadingVars) {
+				// loading a save. InitData could still be set from previous map generation
+				capturedInitData = null;
+			}
 		}
 
 		public override void MapLoaded() {
@@ -112,6 +111,7 @@ namespace MapReroll {
 			if(capturedInitData == null) return; // map was loaded from save
 			
 			ResetScattererGensteps();
+			TryStopPawnVomiting();
 
 			originalMapResourceCount = GetAllResourcesOnMap().Count;
 			if (!settingPaidRerolls) {
@@ -166,16 +166,24 @@ namespace MapReroll {
 		public void RerollMap() {
 			if (mapRerollTriggered) return;
 			try {
+				if(capturedInitData == null) throw new Exception("No MapInitData was captured. Trying to reroll a loaded map?");
 				mapRerollTriggered = true;
+
+				var colonists = PrepareColonistsForReroll();
+
 				Find.Selector.SelectedObjects.Clear();
 
 				var sameWorld = Current.Game.World;
 				var sameScenario = Current.Game.Scenario;
 				var sameStoryteller = Current.Game.storyteller;
 
-				// relationships on off-map pawns need to be cleaned up to avoid dangling references
-				foreach (var startingPawn in capturedInitData.startingPawns) {
-					if(!startingPawn.Destroyed) startingPawn.Destroy();
+				// clear all shrine casket corpse owners from world
+				foreach (var thing in Find.ListerThings.ThingsOfDef(ThingDefOf.AncientCryptosleepCasket)) {
+					var casket = thing as Building_AncientCryptosleepCasket;
+					if(casket == null) continue;
+					var corpse = casket.ContainedThing as Corpse;
+					if (corpse == null || !sameWorld.worldPawns.Contains(corpse.innerPawn)) continue;
+					sameWorld.worldPawns.RemovePawn(corpse.innerPawn);
 				}
 
 				// discard the old player faction so that scenarios can do their thing
@@ -202,18 +210,9 @@ namespace MapReroll {
 				// trash all newly generated pawns
 				StartingPawnUtility.ClearAllStartingPawns();
 
-				// restore our serialized starting colonists
-				newInitData.startingPawns = cannedColonists.ToList();
+				newInitData.startingPawns = colonists;
 				foreach (var startingPawn in newInitData.startingPawns) {
 					startingPawn.SetFactionDirect(newInitData.playerFaction);
-				}
-				PrepareCarefullyCompat.Instance.UpdateCustomColonists(newInitData.startingPawns);
-
-				// precaution against social tab errors, this shouldn't be necessary
-				foreach (var relative in cannedColonists.GetOffMapRelatives()) {
-					if (relative.Faction.RelationWith(newInitData.playerFaction, true) == null) {
-						relative.Faction.TryMakeInitialRelationsWith(newInitData.playerFaction);
-					}
 				}
 
 				SetCustomLoadingMessage();
@@ -222,6 +221,29 @@ namespace MapReroll {
 				Logger.ReportException("RerollMap", e);
 			}
 		}
+
+		private List<Pawn> PrepareColonistsForReroll() {
+			var colonists = Find.MapPawns.PawnsInFaction(Faction.OfPlayer).Where(p => p.IsColonist).ToList();
+			var rerollColonists = new List<Pawn>();
+			foreach (var pawn in colonists) {
+				if (pawn.Spawned) { // pawn might still be in pod
+					pawn.ClearMind();
+					pawn.ClearReservations();
+					pawn.needs.SetInitialLevels();
+					pawn.equipment.DestroyAllEquipment();
+					pawn.Drawer.renderer.graphics.flasher = new DamageFlasher(pawn); // fixes damaged pawns being stuck with red tint after reroll
+					pawn.DeSpawn();
+				}
+				// clear relation with bonded pets
+				foreach (var relation in pawn.relations.DirectRelations.ToArray()) {
+					if (relation.def == PawnRelationDefOf.Bond) {
+						pawn.relations.RemoveDirectRelation(relation);
+					}
+				}
+				rerollColonists.Add(pawn);
+			}
+			return rerollColonists;
+		} 
 
 		private void SetCustomLoadingMessage() {
 			var customLoadingMessage = stockLoadingMessage = LoadingMessageKey.Translate();
@@ -434,12 +456,27 @@ namespace MapReroll {
 			return 0;
 		}
 
+		private void TryStopPawnVomiting() {
+			if (!settingNoVomiting || capturedInitData == null) return;
+			foreach (var pawn in capturedInitData.startingPawns) {
+				foreach (var hediff in pawn.health.hediffSet.hediffs) {
+					if (hediff.def != HediffDefOf.CryptosleepSickness) continue;
+					pawn.health.RemoveHediff(hediff);
+					break;
+				}
+			}
+		}
+
 		private void PrepareSettingsHandles() {
 			settingPaidRerolls = Settings.GetHandle("paidRerolls", "setting_paidRerolls_label".Translate(), "setting_paidRerolls_desc".Translate(), true);
 			settingLoadingMessages = Settings.GetHandle("loadingMessages", "setting_loadingMessages_label".Translate(), "setting_loadingMessages_desc".Translate(), true);
 			settingWidgetSize = Settings.GetHandle("widgetSize", "setting_widgetSize_label".Translate(), "setting_widgetSize_desc".Translate(), DefaultWidgetSize, Validators.IntRangeValidator(MinWidgetSize, MaxWidgetSize));
+			SettingHandle.ShouldDisplay devModeVisible = () => Prefs.DevMode;
 			settingLogConsumedResources = Settings.GetHandle("logConsumption", "setting_logConsumption_label".Translate(), "setting_logConsumption_desc".Translate(), false);
-			settingLogConsumedResources.VisibilityPredicate = () => Prefs.DevMode;
+			settingLogConsumedResources.VisibilityPredicate = devModeVisible;
+			settingNoVomiting = Settings.GetHandle("noVomiting", "setting_noVomiting_label".Translate(), "setting_noVomiting_desc".Translate(), false);
+			settingNoVomiting.VisibilityPredicate = devModeVisible;
+			settingLogConsumedResources.VisibilityPredicate = devModeVisible;
 		}
 	}
 }

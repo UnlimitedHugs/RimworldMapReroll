@@ -56,11 +56,9 @@
     <Compile Include="Source\Dialog_RerollControls.cs" />
     <Compile Include="Source\JobDriver_OpenStash.cs" />
     <Compile Include="Source\MapRerollDefOf.cs" />
-    <Compile Include="Source\PrepareCarefullyCompat.cs" />
     <Compile Include="Source\RerollGUIWidget.cs" />
     <Compile Include="Source\MapRerollController.cs" />
     <Compile Include="Source\MapRerollDef.cs" />
-    <Compile Include="Source\SerializedPawns.cs" />
     <Compile Include="Source\WorkGiver_PirateStash.cs" />
   </ItemGroup>
   <ItemGroup>

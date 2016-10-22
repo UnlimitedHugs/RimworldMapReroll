@@ -18,6 +18,8 @@
 	<setting_widgetSize_desc>The size of the red dice button in pixels.</setting_widgetSize_desc>
 	<setting_logConsumption_label>Log consumed resources</setting_logConsumption_label>
 	<setting_logConsumption_desc>Writes the amounts of resources consumed by the reroll operations to the console.</setting_logConsumption_desc>
+	<setting_noVomiting_label>Disable Cryptosleep sickness</setting_noVomiting_label>
+	<setting_noVomiting_desc>Enable this to keep your colonists from vomiting all over your shiny new map.</setting_noVomiting_desc>
 	
 	<!-- optional loading messages, vanilla loading message will be used if none are found -->
 	
