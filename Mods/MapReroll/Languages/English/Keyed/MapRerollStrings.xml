@@ -10,6 +10,9 @@
 	<MapReroll_stash_readInscription>Read inscription</MapReroll_stash_readInscription>
 	<MapReroll_stash_inscription>The inscription reads:\n"&lt;b&gt;Property of Dread Pirate Steve. Hands off, ya wanker!&quot;&lt;/b&gt;</MapReroll_stash_inscription>
 	
+	<MapReroll_secretLetter_title>Secret found!</MapReroll_secretLetter_title>
+	<MapReroll_secretLetter_text>You discovered the secret feature of Map Reroll! Well done!</MapReroll_secretLetter_text>
+	
 	<setting_paidRerolls_label>Rerolls cost resources</setting_paidRerolls_label>
 <setting_paidRerolls_desc>When enabled, rerolling maps and geysers will cost unmined resources from the map.\nFree rerolls disable the &lt;b&gt;&lt;i&gt;secret feature&lt;/i&gt;&lt;/b&gt;.</setting_paidRerolls_desc>
 	<setting_loadingMessages_label>Custom loading messages</setting_loadingMessages_label>
@@ -54,4 +57,7 @@
 	<MapReroll_loading28>Rerolling hills</MapReroll_loading28>
 	<MapReroll_loading29>Flattening world</MapReroll_loading29>
 	<MapReroll_loading30>Preparing carefully</MapReroll_loading30>
+	<MapReroll_loading31>Spinning up world</MapReroll_loading31>
+	<MapReroll_loading32>Building pirate bases</MapReroll_loading32>
+	<MapReroll_loading33>Hiding pentagons</MapReroll_loading33>
 </LanguageData>

@@ -6,8 +6,8 @@ using Verse.AI;
 namespace MapReroll {
 	public class WorkGiver_PirateStash : WorkGiver_Scanner {
 		
-		public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn Pawn) {
-			var stashes = Find.DesignationManager.DesignationsOfDef(MapRerollDefOf.BreakOpenDesignation);
+		public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn) {
+			var stashes = pawn.Map.designationManager.DesignationsOfDef(MapRerollDefOf.BreakOpenDesignation);
 			foreach (var stash in stashes) {
 				yield return stash.target.Thing;
 			}

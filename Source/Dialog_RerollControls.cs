@@ -9,8 +9,6 @@ namespace MapReroll {
 		private const float ContentsPadding = 15f;
 		private static readonly Texture2D UITex_CloseDialogDice = ContentFinder<Texture2D>.Get("icon_active", false);
 
-		private static readonly SoundDef steamSound = SoundDef.Named("RerollSteamVent");
-		private static readonly SoundDef diceSound = SoundDef.Named("RerollDiceRoll");
 		private const float diceSoundDuration = .7f;
 
 		private float mapRerollTimeout;
@@ -67,11 +65,11 @@ namespace MapReroll {
 			var geyserRerollLabel = "MapReroll_rerollGeysersBtn".Translate(paidRerolls ? geyserCostSuffix : "");
 			var rerollGeysersHit = Widgets.ButtonText(new Rect(contentsRect.x, contentsRect.y + 125f, contentsRect.width, 40f), geyserRerollLabel);
 			if (rerollMapHit && CanAffordOperation(MapRerollController.MapRerollType.Map) && mapRerollTimeout==0) {
-				diceSound.PlayOneShotOnCamera();
+				MapRerollDefOf.RerollDiceRoll.PlayOneShotOnCamera();
 				mapRerollTimeout = Time.time + diceSoundDuration;
 			}
 			if(rerollGeysersHit && CanAffordOperation(MapRerollController.MapRerollType.Geyser)) {
-				steamSound.PlayOneShotOnCamera();
+				MapRerollDefOf.RerollSteamVent.PlayOneShotOnCamera();
 				MapRerollController.Instance.RerollGeysers();
 			}
 			// give an extra moment for the button sound to finish playing

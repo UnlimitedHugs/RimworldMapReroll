@@ -50,4 +50,25 @@
 			</li>	  
 		</subSounds>
 	</SoundDef>
+	
+	<SoundDef>
+		<defName>RerollSecretFound</defName>  
+		<eventNames />	
+		<maxVoices>1</maxVoices>   
+		<maxSimultaneous>1</maxSimultaneous>  
+		<subSounds>
+			<li>
+				<onCamera>True</onCamera>  
+				<grains>
+					<li Class="AudioGrain_Clip">
+						<clipPath>secret_found</clipPath>
+					</li>
+				</grains>	  
+				<volumeRange>
+					<min>120</min>
+					<max>120</max>
+				</volumeRange>
+			</li>	  
+		</subSounds>
+	</SoundDef>
 </DefPackage-SoundDef>

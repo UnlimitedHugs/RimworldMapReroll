@@ -3,6 +3,7 @@ using Verse;
 
 namespace MapReroll {
 	[DefOf]
+	// ReSharper disable UnassignedField.Global
 	public class MapRerollDefOf {
 		public static ThingDef PirateStash;
 
@@ -11,5 +12,9 @@ namespace MapReroll {
 		public static DesignationDef BreakOpenDesignation;
 
 		public static JobDef JobDef_OpenStash;
+
+		public static SoundDef RerollSteamVent;
+		public static SoundDef RerollDiceRoll;
+		public static SoundDef RerollSecretFound;
 	}
 }

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using HugsLib;
+using HugsLib.Utils;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -37,8 +37,8 @@ namespace MapReroll {
 			justCreated = true;
 		}
 
-		public override void SpawnSetup() {
-			base.SpawnSetup();
+		public override void SpawnSetup(Map map) {
+			base.SpawnSetup(map);
 			if (justCreated) {
 				AssignInventory();
 			}
@@ -58,8 +58,8 @@ namespace MapReroll {
 			}
 			var placed = false;
 			foreach (var pos in GenRadial.RadialCellsAround(Position, DropLocationRadius, false)) {
-				if(!pos.InBounds()) continue;
-				var things = Find.ThingGrid.ThingsListAtFast(pos);
+				if(!pos.InBounds(Map)) continue;
+				var things = Map.thingGrid.ThingsListAtFast(pos);
 				var validSpot = true;
 				for (int i = 0; i < things.Count; i++) {
 					var t = things[i];
@@ -72,30 +72,31 @@ namespace MapReroll {
 				if (!validSpot) continue;
 				Thing placedThing;
 				if (invStack.stackCount <= dropLimit) {
-					inventory.TryDrop(invStack, pos, ThingPlaceMode.Direct, out placedThing);
+					inventory.TryDrop(invStack, pos, Map, ThingPlaceMode.Direct, out placedThing);
 				} else {
 					invStack.stackCount -= dropLimit;
 					placedThing = ThingMaker.MakeThing(invStack.def);
 					placedThing.stackCount = dropLimit;
-					GenPlace.TryPlaceThing(placedThing, pos, ThingPlaceMode.Direct);
+					GenPlace.TryPlaceThing(placedThing, pos, Map, ThingPlaceMode.Direct);
 				}
 				placedThing.def.soundDrop.PlayOneShot(this);
 				placed = true;
 				break;
 			}
 			if (!placed) { // ran out of cells in radius
-				inventory.TryDropAll(Position, ThingPlaceMode.Near);
+				inventory.TryDropAll(Position, Map, ThingPlaceMode.Near);
 			}
 			if (inventory.Count == 0) {
 				nextDropTick = 0;
 				inventory = null;
+				MapRerollController.Instance.TryReceiveSecretLetter(Position, Map);
 			}
 			
 		}
 
 		public override void Destroy(DestroyMode mode = DestroyMode.Vanish) {
 			if ((mode == DestroyMode.Kill || mode == DestroyMode.Deconstruct) && inventory != null) {
-				inventory.TryDropAll(Position, ThingPlaceMode.Near);
+				inventory.TryDropAll(Position, Map, ThingPlaceMode.Near);
 			}
 			base.Destroy(mode);
 		}
@@ -104,7 +105,7 @@ namespace MapReroll {
 			yield return new Command_Action {
 				defaultLabel = "MapReroll_stash_readInscription".Translate(),
 				icon = InscriptionGizmoTexture,
-				action = () => Find.WindowStack.Add(new Dialog_Message("MapReroll_stash_inscription".Translate())),
+				action = () => Find.WindowStack.Add(new Dialog_MessageBox("MapReroll_stash_inscription".Translate())),
 				hotKey = KeyBindingDefOf.Misc1
 			};
 
@@ -139,13 +140,13 @@ namespace MapReroll {
 			}
 			const int dustPuffCount = 5;
 			for (int i = 0; i < dustPuffCount; i++) {
-				MoteMaker.ThrowDustPuff(Position, Rand.Range(.5f, 2f));
+				MoteMaker.ThrowDustPuff(Position, Map, Rand.Range(.5f, 2f));
 			}
 			nextDropTick = Find.TickManager.TicksGame + DropEveryTicks;
 			wantOpen = false;
 			this.ToggleDesignation(MapRerollDefOf.BreakOpenDesignation, wantOpen);
 		}
-
+		
 		private void AssignInventory() {
 			inventory = new ThingContainer();
 			var props = CustomProps;
