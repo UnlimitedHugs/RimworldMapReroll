@@ -230,7 +230,7 @@ namespace MapReroll {
 				}
 
 				SetCustomLoadingMessage();
-				LongEventHandler.QueueLongEvent(() => { SceneManager.LoadScene("Play"); }, "GeneratingMap", true, GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap);
+				LongEventHandler.QueueLongEvent(null, "Play", "GeneratingMap", true, GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap);
 			} catch (Exception e) {
 				Logger.ReportException(e);
 			}
