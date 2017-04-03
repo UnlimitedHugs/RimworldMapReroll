@@ -8,7 +8,6 @@ using HugsLib.Utils;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using Verse;
 using Verse.Sound;
 using Random = UnityEngine.Random;
@@ -79,9 +78,11 @@ namespace MapReroll {
 
 		private FieldInfo thingPrivateStateField;
 		private FieldInfo genstepScattererProtectedUsedSpots;
+		private FieldInfo arrivalMethodMethodField;
 
 		private bool mapRerollTriggered;
 		private string originalWorldSeed;
+		private string lastRerollSeed;
 		private GameInitData capturedInitData;
 		private string stockLoadingMessage;
 		private int numAvailableLoadingMessages;
@@ -92,8 +93,8 @@ namespace MapReroll {
 		private SettingHandle<int>  settingWidgetSize;
 		private SettingHandle<bool> settingLogConsumedResources;
 		private SettingHandle<bool> settingNoVomiting;
-		private SettingHandle<bool> settingSecretFound; 
-
+		private SettingHandle<bool> settingSecretFound;
+		
 		private MapRerollController() {
 			instance = this;
 			guiWidget = new RerollGUIWidget();
@@ -133,13 +134,14 @@ namespace MapReroll {
 					ReduceMapResources(map, 100 - (ResourcePercentageRemaining), 100); 
 					SubtractResourcePercentage(map, SettingsDef.mapRerollCost);
 				}
+				RecordPodLandingTaleForColonists(capturedInitData.startingPawns);
 				Find.World.info.seedString = originalWorldSeed;
 				KillIntroDialog();
 				RestoreVanillaLoadingMessage();
 				if(OnMapRerolled!=null) OnMapRerolled();
 			} else {
 				ResourcePercentageRemaining = 100f;
-				originalWorldSeed = Find.World.info.seedString;
+				lastRerollSeed = originalWorldSeed = Find.World.info.seedString;
 			}
 			guiWidget.Initialize(mapRerollTriggered);
 			mapRerollTriggered = false;
@@ -215,7 +217,7 @@ namespace MapReroll {
 
 				Current.Game.World = sameWorld;
 				Current.Game.storyteller = sameStoryteller;
-				sameWorld.info.seedString = Rand.Int.ToString();
+				lastRerollSeed = sameWorld.info.seedString = GenerateNewRerollSeed(lastRerollSeed);
 
 				Find.Scenario.PostWorldLoad();
 				newInitData.PrepForMapGen();
@@ -233,6 +235,14 @@ namespace MapReroll {
 				LongEventHandler.QueueLongEvent(null, "Play", "GeneratingMap", true, GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap);
 			} catch (Exception e) {
 				Logger.ReportException(e);
+			}
+		}
+
+		// create a deterministic but sufficiently random new seed
+		private string GenerateNewRerollSeed(string previousSeed) {
+			const int magicNumber = 3;
+			unchecked {
+				return ((previousSeed.GetHashCode() << 1) * magicNumber).ToString();
 			}
 		}
 
@@ -257,7 +267,22 @@ namespace MapReroll {
 				rerollColonists.Add(pawn);
 			}
 			return rerollColonists;
-		} 
+		}
+
+		// pawns already start on the ground on rerolled maps, so make sure the tale of their initial landing is preserved
+		private void RecordPodLandingTaleForColonists(IEnumerable<Pawn> colonists) {
+			var scenario = Find.Scenario;
+			var arrivalScenPart = (ScenPart_PlayerPawnsArriveMethod)scenario.AllParts.FirstOrDefault(s => s is ScenPart_PlayerPawnsArriveMethod);
+			if(arrivalScenPart == null) return;
+			var arrivalMethod = (PlayerPawnsArriveMethod)arrivalMethodMethodField.GetValue(arrivalScenPart);
+			if (arrivalMethod == PlayerPawnsArriveMethod.DropPods) {
+				foreach (var pawn in colonists) {
+					if (pawn.RaceProps.Humanlike) {
+						TaleRecorder.RecordTale(TaleDefOf.LandedInPod, pawn);
+					}
+				}
+			}
+		}
 
 		private void SetCustomLoadingMessage() {
 			var customLoadingMessage = stockLoadingMessage = LoadingMessageKey.Translate();
@@ -280,8 +305,10 @@ namespace MapReroll {
 		private void PrepareReflectionReferences() {
 			thingPrivateStateField = typeof(Thing).GetField("mapIndexOrState", BindingFlags.Instance | BindingFlags.NonPublic);
 			genstepScattererProtectedUsedSpots = typeof(GenStep_Scatterer).GetField("usedSpots", BindingFlags.Instance | BindingFlags.NonPublic);
+			arrivalMethodMethodField = typeof (ScenPart_PlayerPawnsArriveMethod).GetField("method", BindingFlags.Instance | BindingFlags.NonPublic);
 			if (thingPrivateStateField == null || thingPrivateStateField.FieldType != typeof(sbyte)
-				|| genstepScattererProtectedUsedSpots == null || genstepScattererProtectedUsedSpots.FieldType != typeof(List<IntVec3>)) {
+				|| genstepScattererProtectedUsedSpots == null || genstepScattererProtectedUsedSpots.FieldType != typeof(List<IntVec3>)
+				|| arrivalMethodMethodField == null || arrivalMethodMethodField.FieldType != typeof(PlayerPawnsArriveMethod)) {
 				Logger.Error("Failed to get named fields by reflection");
 			}
 		}
