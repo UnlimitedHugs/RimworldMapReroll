@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <MapReroll_windowTitle>重置地圖</MapReroll_windowTitle>
+  <MapReroll_oresLeft>地圖資源剩餘： {0}%</MapReroll_oresLeft>
+  <MapReroll_rerollGeysersBtn>重置地熱{0}</MapReroll_rerollGeysersBtn>
+  <MapReroll_rerollMapBtn>重置地圖{0}</MapReroll_rerollMapBtn>
+  <MapReroll_resourceCost_suffix> ({0}%)</MapReroll_resourceCost_suffix>
+  <MapReroll_freeRerollsLabel>重置地圖無需消耗資源</MapReroll_freeRerollsLabel>
+
+  <MapReroll_stash_readInscription>閱讀碑文</MapReroll_stash_readInscription>
+  <MapReroll_stash_inscription>碑文寫著:\n"&lt;b&gt;這是凶名赫赫的海盜——斯蒂夫的財產，把手拿開，你這個小赤佬！"&lt;/b&gt;</MapReroll_stash_inscription>
+
+  <MapReroll_secretLetter_title>發現秘密！</MapReroll_secretLetter_title>
+  <MapReroll_secretLetter_text> 你觸發了重置地圖的隱藏事件！厲害了我的哥！</MapReroll_secretLetter_text>
+
+  <setting_paidRerolls_label>重置會消耗資源</setting_paidRerolls_label>
+  <setting_paidRerolls_desc>打開時, 重置地圖和地熱將會消耗地圖上的礦產資源。\n但免費重置將使你無法觸發&lt;b&gt;&lt;i&gt;某些隱藏事件&lt;/i&gt;&lt;/b&gt;.</setting_paidRerolls_desc>
+  <setting_loadingMessages_label>定制的加載信息</setting_loadingMessages_label>
+  <setting_loadingMessages_desc>當你重置地圖時，將會在加載界面顯示自定義的加載信息。</setting_loadingMessages_desc>
+  <setting_widgetSize_label>骰子按鈕的大小</setting_widgetSize_label>
+  <setting_widgetSize_desc>右上角紅色骰子按鈕的大小</setting_widgetSize_desc>
+  <setting_logConsumption_label>記載消耗的資源</setting_logConsumption_label>
+  <setting_logConsumption_desc>記載重置操作所消耗的資源總量。</setting_logConsumption_desc>
+  <setting_noVomiting_label>禁止昏睡病</setting_noVomiting_label>
+  <setting_noVomiting_desc>激活這個，你的殖民者就不會將嘔吐物弄得滿地都是。</setting_noVomiting_desc>
+
+  <!-- optional loading messages, vanilla loading message will be used if none are found -->
+
+  <MapReroll_loading0>正在收買命運女神</MapReroll_loading0>
+  <MapReroll_loading1>正在生成網狀線條</MapReroll_loading1>
+  <MapReroll_loading2>正在回溯時間</MapReroll_loading2>
+  <MapReroll_loading3>蛤？</MapReroll_loading3>
+  <MapReroll_loading4>正在玩手指</MapReroll_loading4>
+  <MapReroll_loading5>正在重創宇宙</MapReroll_loading5>
+  <MapReroll_loading6>正在切換大陸</MapReroll_loading6>
+  <MapReroll_loading7>正在增加岩石</MapReroll_loading7>
+  <MapReroll_loading8>正在繁殖動物</MapReroll_loading8>
+  <MapReroll_loading9>你什麼也沒看見</MapReroll_loading9>
+  <MapReroll_loading10>正在施展魔法</MapReroll_loading10>
+  <MapReroll_loading11>正在和上帝交流</MapReroll_loading11>
+  <MapReroll_loading12>正在埋藏寶藏</MapReroll_loading12>
+  <MapReroll_loading13>正在嘲笑人形機器人</MapReroll_loading13>
+  <MapReroll_loading14>強迫症犯了</MapReroll_loading14>
+  <MapReroll_loading15>正在變得更好</MapReroll_loading15>
+  <MapReroll_loading16>正在打破法則</MapReroll_loading16>
+  <MapReroll_loading17>正在抽乾海水</MapReroll_loading17>
+  <MapReroll_loading18>正在搖骰子</MapReroll_loading18>
+  <MapReroll_loading19>正在壓製鋼材</MapReroll_loading19>
+  <MapReroll_loading20>正在隱藏金礦</MapReroll_loading20>
+  <MapReroll_loading21>正在清除證據</MapReroll_loading21>
+  <MapReroll_loading22>我們必須到更深處去</MapReroll_loading22>
+  <MapReroll_loading23>你不是在做夢</MapReroll_loading23>
+  <MapReroll_loading24>正在嘲諷海盜</MapReroll_loading24>
+  <MapReroll_loading25>齒輪正在轉動</MapReroll_loading25>
+  <MapReroll_loading26>正在剪兔毛</MapReroll_loading26>
+  <MapReroll_loading27>正在給飛船添加燃料</MapReroll_loading27>
+  <MapReroll_loading28>正在重置山脈</MapReroll_loading28>
+  <MapReroll_loading29>世界將會變得很平坦</MapReroll_loading29>
+  <MapReroll_loading30>仔細準備中</MapReroll_loading30>
+  <MapReroll_loading31>正在轉動世界</MapReroll_loading31>
+  <MapReroll_loading32>正在創建海盜基地</MapReroll_loading32>
+  <MapReroll_loading33>正在隱藏玻璃鋼</MapReroll_loading33>
+
+  <!--可以選擇的加載信息, 如果沒有則會加載原信息。-->
+
+</LanguageData>
