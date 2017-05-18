@@ -35,6 +35,7 @@ namespace MapReroll {
 
 		private const string LoadingMessageKey = "GeneratingMap";
 		private const string CustomLoadingMessagePrefix = "MapReroll_loading";
+		private const string CrashLandingHardArrivePartTypeName = "CrashLanding.ScenPart_PlayerPawnsArriveMethodCrash";
 
 		// feel free to use these to detect reroll events 
 		// ReSharper disable EventNeverSubscribedTo.Global
@@ -79,6 +80,10 @@ namespace MapReroll {
 		private FieldInfo thingPrivateStateField;
 		private FieldInfo genstepScattererProtectedUsedSpots;
 		private FieldInfo arrivalMethodMethodField;
+		private FieldInfo scenarioPartsField;
+		private FieldInfo arrivalMethodField;
+		private FieldInfo createIncidentIsFinishedField;
+		private Type scenPartCreateIncidentType;
 
 		private bool mapRerollTriggered;
 		private string originalWorldSeed;
@@ -209,6 +214,8 @@ namespace MapReroll {
 				Current.Game = new Game();
 				var newInitData = Current.Game.InitData = new GameInitData();
 				Current.Game.Scenario = sameScenario;
+				ResetIncidentScenarioParts(sameScenario);
+				TryReplaceHardCrashLandingPawnStart(sameScenario);
 				Find.Scenario.PreConfigure();
 				newInitData.permadeath = capturedInitData.permadeath;
 				newInitData.startingTile = capturedInitData.startingTile;
@@ -239,7 +246,8 @@ namespace MapReroll {
 		}
 
 		// create a deterministic but sufficiently random new seed
-		private string GenerateNewRerollSeed(string previousSeed) {
+			private
+			string GenerateNewRerollSeed(string previousSeed) {
 			const int magicNumber = 3;
 			unchecked {
 				return ((previousSeed.GetHashCode() << 1) * magicNumber).ToString();
@@ -306,9 +314,18 @@ namespace MapReroll {
 			thingPrivateStateField = typeof(Thing).GetField("mapIndexOrState", BindingFlags.Instance | BindingFlags.NonPublic);
 			genstepScattererProtectedUsedSpots = typeof(GenStep_Scatterer).GetField("usedSpots", BindingFlags.Instance | BindingFlags.NonPublic);
 			arrivalMethodMethodField = typeof (ScenPart_PlayerPawnsArriveMethod).GetField("method", BindingFlags.Instance | BindingFlags.NonPublic);
+			scenarioPartsField = typeof (Scenario).GetField("parts", BindingFlags.Instance | BindingFlags.NonPublic);
+			arrivalMethodField = typeof(ScenPart_PlayerPawnsArriveMethod).GetField("method", BindingFlags.Instance | BindingFlags.NonPublic);
+			scenPartCreateIncidentType = typeof(ScenPart).Assembly.GetType("RimWorld.ScenPart_CreateIncident", false);
+			if (scenPartCreateIncidentType != null) {
+				createIncidentIsFinishedField = scenPartCreateIncidentType.GetField("isFinished", BindingFlags.Instance | BindingFlags.NonPublic);
+			}
 			if (thingPrivateStateField == null || thingPrivateStateField.FieldType != typeof(sbyte)
 				|| genstepScattererProtectedUsedSpots == null || genstepScattererProtectedUsedSpots.FieldType != typeof(List<IntVec3>)
-				|| arrivalMethodMethodField == null || arrivalMethodMethodField.FieldType != typeof(PlayerPawnsArriveMethod)) {
+				|| arrivalMethodMethodField == null || arrivalMethodMethodField.FieldType != typeof(PlayerPawnsArriveMethod)
+				|| scenarioPartsField == null || scenarioPartsField.FieldType != typeof(List<ScenPart>)
+				|| arrivalMethodField == null || arrivalMethodField.FieldType != typeof (PlayerPawnsArriveMethod)
+				|| createIncidentIsFinishedField == null || createIncidentIsFinishedField.FieldType != typeof(bool)) {
 				Logger.Error("Failed to get named fields by reflection");
 			}
 		}
@@ -347,6 +364,38 @@ namespace MapReroll {
 			var usedSpots = (List<IntVec3>) genstepScattererProtectedUsedSpots.GetValue(genstep);
 			if(usedSpots!=null) {
 				usedSpots.Clear();
+			}
+		}
+
+		// Reset ScenPart_CreateIncident to repeat their incident on the new map
+		private void ResetIncidentScenarioParts(Scenario scenario) {
+			foreach (var part in scenario.AllParts) {
+				if (part != null && part.GetType() == scenPartCreateIncidentType) {
+					createIncidentIsFinishedField.SetValue(part, false);
+				}
+			}
+		}
+
+		// Crash Landing compatibility fix
+		// hard scenario: heal up colonists for a repeat crash landing
+		private void TryReplaceHardCrashLandingPawnStart(Scenario scenario) {
+			var hardArrivePartType = GenTypes.GetTypeInAnyAssembly(CrashLandingHardArrivePartTypeName);
+			if (hardArrivePartType == null) {
+				// crash landing is not loaded
+				return;
+			}
+			var scenParts = (List<ScenPart>)scenarioPartsField.GetValue(scenario);
+			var partIndex = scenParts.FindIndex(p => p != null && p.GetType() == hardArrivePartType);
+			if (partIndex >= 0) {
+				var arriveMethodDef = DefDatabase<ScenPartDef>.GetNamedSilentFail("PlayerPawnsArriveMethod");
+				if (arriveMethodDef != null) {
+					scenParts.RemoveAt(partIndex);
+					var standingPart = new ScenPart_PlayerPawnsArriveMethod {def = arriveMethodDef};
+					arrivalMethodField.SetValue(standingPart, PlayerPawnsArriveMethod.Standing);
+					scenParts.Insert(partIndex, standingPart);
+				} else {
+					Logger.Warning("PlayerPawnsArriveMethod Def not found. Crash Landing compat is off");
+				}
 			}
 		}
 
