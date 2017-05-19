@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿// ReSharper disable UnassignedField.Global
+using System.Collections.Generic;
 using RimWorld;
 using Verse;
 
@@ -21,7 +22,7 @@ namespace MapReroll {
 			var defCount = contentsDefs.Count;
 			ResolvedContentDefs = new List<ThingDef>(defCount);
 			foreach (var defName in contentsDefs) {
-				CrossRefLoader.RegisterListWantsCrossRef(ResolvedContentDefs, defName);
+				DirectXmlCrossRefLoader.RegisterListWantsCrossRef(ResolvedContentDefs, defName);
 			}
 			if (contentsAmounts.Count != defCount || dropStackLimits.Count != defCount)
 				Log.Error("BuildingProperties_PirateStash: contentsDefs, contentsAmounts, dropStackLimits must contain the same number of items");

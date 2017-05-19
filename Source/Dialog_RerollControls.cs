@@ -38,8 +38,7 @@ namespace MapReroll {
 		}
 
 		public override void PostOpen() {
-			var widgetRect = RerollGUIWidget.GetWidgetRect();
-			windowRect = new Rect((widgetRect.x + widgetRect.width)/Prefs.UIScale - InitialSize.x, widgetRect.y/Prefs.UIScale, InitialSize.x, InitialSize.y);
+			ResetPosition();
 		}
 
 		public override void DoWindowContents(Rect inRect) {
@@ -76,6 +75,16 @@ namespace MapReroll {
 				mapRerollTimeout = 0;
 				MapRerollController.Instance.RerollMap();
 			}
+		}
+		
+		// ensure the window is always in the right position over the dice button
+		public override void Notify_ResolutionChanged() {
+			ResetPosition();
+		}
+
+		private void ResetPosition() {
+			var widgetRect = RerollGUIWidget.GetWidgetRect();
+			windowRect = new Rect(widgetRect.x + widgetRect.width - InitialSize.x, widgetRect.y, InitialSize.x, InitialSize.y);
 		}
 
 		private bool CanAffordOperation(MapRerollController.MapRerollType operation) {

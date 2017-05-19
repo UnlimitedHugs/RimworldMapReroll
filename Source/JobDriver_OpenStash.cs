@@ -9,7 +9,7 @@ namespace MapReroll {
 
 		public override void ExposeData() {
 			base.ExposeData();
-			Scribe_Values.LookValue(ref workLeft, "workLeft", 0f);
+			Scribe_Values.Look(ref workLeft, "workLeft", 0f);
 		}
 
 		protected override IEnumerable<Toil> MakeNewToils() {

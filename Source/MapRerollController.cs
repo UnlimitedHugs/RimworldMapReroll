@@ -83,6 +83,7 @@ namespace MapReroll {
 		private FieldInfo scenarioPartsField;
 		private FieldInfo arrivalMethodField;
 		private FieldInfo createIncidentIsFinishedField;
+		private FieldInfo buildingSustainerField;
 		private Type scenPartCreateIncidentType;
 
 		private bool mapRerollTriggered;
@@ -99,7 +100,7 @@ namespace MapReroll {
 		private SettingHandle<bool> settingLogConsumedResources;
 		private SettingHandle<bool> settingNoVomiting;
 		private SettingHandle<bool> settingSecretFound;
-		
+
 		private MapRerollController() {
 			instance = this;
 			guiWidget = new RerollGUIWidget();
@@ -214,19 +215,22 @@ namespace MapReroll {
 				Current.Game = new Game();
 				var newInitData = Current.Game.InitData = new GameInitData();
 				Current.Game.Scenario = sameScenario;
+				
 				ResetIncidentScenarioParts(sameScenario);
 				TryReplaceHardCrashLandingPawnStart(sameScenario);
+				
 				Find.Scenario.PreConfigure();
+
 				newInitData.permadeath = capturedInitData.permadeath;
 				newInitData.startingTile = capturedInitData.startingTile;
-				newInitData.startingMonth = capturedInitData.startingMonth;
+				newInitData.startingSeason = capturedInitData.startingSeason;
 				newInitData.mapSize = capturedInitData.mapSize;
 
 				Current.Game.World = sameWorld;
 				Current.Game.storyteller = sameStoryteller;
 				lastRerollSeed = sameWorld.info.seedString = GenerateNewRerollSeed(lastRerollSeed);
 
-				Find.Scenario.PostWorldLoad();
+				Find.Scenario.PostWorldGenerate();
 				newInitData.PrepForMapGen();
 				Find.Scenario.PreMapGenerate();
 
@@ -246,8 +250,7 @@ namespace MapReroll {
 		}
 
 		// create a deterministic but sufficiently random new seed
-			private
-			string GenerateNewRerollSeed(string previousSeed) {
+		private string GenerateNewRerollSeed(string previousSeed) {
 			const int magicNumber = 3;
 			unchecked {
 				return ((previousSeed.GetHashCode() << 1) * magicNumber).ToString();
@@ -317,6 +320,7 @@ namespace MapReroll {
 			scenarioPartsField = typeof (Scenario).GetField("parts", BindingFlags.Instance | BindingFlags.NonPublic);
 			arrivalMethodField = typeof(ScenPart_PlayerPawnsArriveMethod).GetField("method", BindingFlags.Instance | BindingFlags.NonPublic);
 			scenPartCreateIncidentType = typeof(ScenPart).Assembly.GetType("RimWorld.ScenPart_CreateIncident", false);
+			buildingSustainerField = typeof (Building).GetField("sustainerAmbient", BindingFlags.Instance | BindingFlags.NonPublic);
 			if (scenPartCreateIncidentType != null) {
 				createIncidentIsFinishedField = scenPartCreateIncidentType.GetField("isFinished", BindingFlags.Instance | BindingFlags.NonPublic);
 			}
@@ -331,7 +335,7 @@ namespace MapReroll {
 		}
 
 		private void DiscardWorldTileFaction(int tile) {
-			var faction = Find.FactionManager.FactionAtTile(tile);
+			var faction = Find.WorldObjects.FactionBaseAt(tile).Faction;
 			if (faction == null) return;
 			// remove base
 			var factionBases = Find.WorldObjects.FactionBases;
@@ -341,7 +345,7 @@ namespace MapReroll {
 				break;
 			}
 			// discard faction
-			List<Faction> factionList = Find.World.factionManager.AllFactionsListForReading;
+			var factionList = Find.World.factionManager.AllFactionsListForReading;
 			faction.RemoveAllRelations();
 			factionList.Remove(faction);
 		}
@@ -351,7 +355,7 @@ namespace MapReroll {
 		private void ResetScattererGensteps() {
 			var mapGenDef = TryGetMostLikelyMapGenerator();
 			if (mapGenDef == null) return;
-			foreach (var genStepDef in mapGenDef.GenStepsInOrder) {
+			foreach (var genStepDef in mapGenDef.GenSteps) {
 				var genstepScatterer = genStepDef.genStep as GenStep_Scatterer;
 				if (genstepScatterer != null) {
 					ResetScattererGenstepInternalState(genstepScatterer);		
@@ -482,7 +486,7 @@ namespace MapReroll {
 			var stash = ThingMaker.MakeThing(MapRerollDefOf.PirateStash);
 			GenSpawn.Spawn(stash, position, map);
 #if TEST_STASH
-			Logger.Trace("Placed shash at " + position);
+			Logger.Trace("Placed stash at " + position);
 #endif
 			return true;
 		}
@@ -507,41 +511,41 @@ namespace MapReroll {
 		 */
 		private void SneakilyDestroyResource(Thing res) {
 			var map = res.Map;
+			RegionListersUpdater.DeregisterInRegions(res, map);
+			map.spawnedThings.Remove(res);
 			map.listerThings.Remove(res);
 			map.thingGrid.Deregister(res);
 			map.coverGrid.DeRegister(res);
-			if (res.def.hasTooltip) {
-				map.tooltipGiverList.DeregisterTooltipGiver(res);
-			}
+			map.tooltipGiverList.Notify_ThingDespawned(res);
 			if (res.def.graphicData != null && res.def.graphicData.Linked) {
 				map.linkGrid.Notify_LinkerCreatedOrDestroyed(res);
 				map.mapDrawer.MapMeshDirty(res.Position, MapMeshFlag.Things, true, false);
 			}
 			Find.Selector.Deselect(res);
-			if (res.def.drawerType != DrawerType.RealtimeOnly) {
-				var cellRect = res.OccupiedRect();
-				for (var i = cellRect.minZ; i <= cellRect.maxZ; i++) {
-					for (var j = cellRect.minX; j <= cellRect.maxX; j++) {
-						map.mapDrawer.MapMeshDirty(new IntVec3(j, 0, i), MapMeshFlag.Things);
-					}
-				}
-			}
+			res.DirtyMapMesh(map);
 			if (res.def.drawerType != DrawerType.MapMeshOnly) {
 				map.dynamicDrawManager.DeRegisterDrawable(res);
 			}
 			thingPrivateStateField.SetValue(res, res.def.DiscardOnDestroyed ? ThingDiscardedState : ThingMemoryState);
 			Find.TickManager.DeRegisterAllTickabilityFor(res);
 			map.attackTargetsCache.Notify_ThingDespawned(res);
+			StealAIDebugDrawer.Notify_ThingChanged(res);
 			// building-specific cleanup
-			if(res.def.IsEdifice()) map.edificeGrid.DeRegister((Building)res);
-			map.listerBuildings.Remove((Building) res);
-			map.designationManager.RemoveAllDesignationsOn(res);
+			var b = (Building) res;
+			if (res.def.IsEdifice()) map.edificeGrid.DeRegister(b);
+			var sustainer = (Sustainer)buildingSustainerField.GetValue(res);
+			if(sustainer!=null) sustainer.End();
+			map.mapDrawer.MapMeshDirty(b.Position, MapMeshFlag.Buildings);
+			map.glowGrid.MarkGlowGridDirty(b.Position);
+			map.listerBuildings.Remove((Building)res);
+			map.listerBuildingsRepairable.Notify_BuildingDeSpawned(b);
+			map.designationManager.Notify_BuildingDespawned(b);
 		}
 
 		private GenStep_ScatterThings TryGetGeyserGenstep() {
 			var mapGenDef = TryGetMostLikelyMapGenerator();
 			if (mapGenDef == null) return null;
-			return (GenStep_ScatterThings)mapGenDef.GenStepsInOrder.Find(g => {
+			return (GenStep_ScatterThings)mapGenDef.GenSteps.Find(g => {
 				var gen = g.genStep as GenStep_ScatterThings;
 				return gen != null && gen.thingDef == ThingDefOf.SteamGeyser;
 			}).genStep;
@@ -605,10 +609,10 @@ namespace MapReroll {
 			settingSecretFound.NeverVisible = true;
 		}
 
-		// receive the secret congrats letter if not already received
+		// receive the secret congrats letter if not already received 
 		public void TryReceiveSecretLetter(IntVec3 position, Map map) {
 			if (settingSecretFound) return;
-			Find.LetterStack.ReceiveLetter("MapReroll_secretLetter_title".Translate(), "MapReroll_secretLetter_text".Translate(), LetterType.Good, new GlobalTargetInfo(position, map));
+			Find.LetterStack.ReceiveLetter("MapReroll_secretLetter_title".Translate(), "MapReroll_secretLetter_text".Translate(), LetterDefOf.Good, new GlobalTargetInfo(position, map));
 			MapRerollDefOf.RerollSecretFound.PlayOneShotOnCamera();
 			settingSecretFound.Value = true;
 			HugsLibController.SettingsManager.SaveChanges();
