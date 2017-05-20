@@ -56,6 +56,8 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Source\Compat\Compat_CrashLanding.cs" />
+    <Compile Include="Source\MapComponent_MapRerollState.cs" />
+    <Compile Include="Source\MapRerollState.cs" />
     <Compile Include="Source\MapRerollToolbox.cs" />
     <Compile Include="Source\ReflectionCache.cs" />
     <Compile Include="Source\Things\BuildingProperties_PirateStash.cs" />

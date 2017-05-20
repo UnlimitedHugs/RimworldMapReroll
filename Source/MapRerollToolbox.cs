@@ -191,7 +191,7 @@ namespace MapReroll {
 			}).genStep;
 		}
 
-		public static void SubtractResourcePercentage(Map map, float percent, MapRerollController.MapRerollState rerollState) {
+		public static void SubtractResourcePercentage(Map map, float percent, MapRerollState rerollState) {
 			ReduceMapResources(map, percent, rerollState.ResourcesPercentBalance);
 			rerollState.ResourcesPercentBalance = Mathf.Clamp(rerollState.ResourcesPercentBalance - percent, 0, 100);
 		}
@@ -206,9 +206,9 @@ namespace MapReroll {
 			HugsLibController.SettingsManager.SaveChanges();
 		}
 
-		public static void TryStopStartingPawnVomiting(MapRerollController.MapRerollState state) {
-			if (!MapRerollController.Instance.SettingHandles.NoVomiting || state == null) return;
-			foreach (var pawn in state.InitData.startingPawns) {
+		public static void TryStopStartingPawnVomiting(Map map) {
+			if (!MapRerollController.Instance.SettingHandles.NoVomiting) return;
+			foreach (var pawn in GetAllColonistsOnMap(map)) {
 				foreach (var hediff in pawn.health.hediffSet.hediffs) {
 					if (hediff.def != HediffDefOf.CryptosleepSickness) continue;
 					pawn.health.RemoveHediff(hediff);
@@ -226,13 +226,13 @@ namespace MapReroll {
 			if (stashDef == null || originalMapResourceCount == 0 || stashDef.commonality == 0 || !LocationIsSuitableForStash(map, position)) return false;
 			var mapSize = map.Size;
 			// bias 0 for default map size, bias 1 for max map size
-			var mapSizeBias = ((((mapSize.x * mapSize.z) / MapRerollController.DefaultMapSize) - 1) / ((MapRerollController.LargestMapSize / MapRerollController.DefaultMapSize) - 1)) * stashDef.mapSizeCommonalityBias;
+			var mapSizeBias = ((((mapSize.x * mapSize.z) / (float)MapRerollController.DefaultMapSize) - 1) / ((MapRerollController.LargestMapSize / (float)MapRerollController.DefaultMapSize) - 1)) * stashDef.mapSizeCommonalityBias;
 			var rollSuccess = Rand.Range(0f, 1f) < 1 / (originalMapResourceCount / (stashDef.commonality + mapSizeBias));
 			if (!rollSuccess) return false;
 			var stash = ThingMaker.MakeThing(MapRerollDefOf.PirateStash);
 			GenSpawn.Spawn(stash, position, map);
 #if TEST_STASH
-			Logger.Trace("Placed stash at " + position);
+			MapRerollController.Instance.Logger.Trace("Placed stash at " + position);
 #endif
 			return true;
 		}

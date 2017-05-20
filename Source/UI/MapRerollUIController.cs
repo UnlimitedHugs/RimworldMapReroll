@@ -41,8 +41,8 @@ namespace MapReroll {
 					&& Current.Game != null
 					&& Current.Game.VisibleMap != null
 					&& MapRerollController.Instance.RerollState != null
-					&& MapRerollController.Instance.RerollState.InitData != null
-					&& Current.Game.VisibleMap.Tile == MapRerollController.Instance.RerollState.InitData.startingTile
+					&& MapRerollController.Instance.RerollState.HasInitData
+					&& Current.Game.VisibleMap.Tile == MapRerollController.Instance.RerollState.StartingTile
 					&& !Faction.OfPlayer.HasName;
 			}
 		}

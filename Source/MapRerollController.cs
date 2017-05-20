@@ -1,13 +1,17 @@
-﻿using System;
+﻿// ReSharper disable EventNeverSubscribedTo.Global
+using System;
 using HugsLib;
 using HugsLib.Settings;
 using HugsLib.Utils;
 using Verse;
 
 namespace MapReroll {
+	/// <summary>
+	/// The hub of the mod. Instantiated by HugsLib.
+	/// </summary>
 	public class MapRerollController : ModBase {
-		internal const float DefaultMapSize = 250*250;
-		internal const float LargestMapSize = 400*400;
+		internal const int DefaultMapSize = 250*250;
+		internal const int LargestMapSize = 400*400;
 
 		public enum MapRerollType {
 			Map, Geyser
@@ -23,7 +27,6 @@ namespace MapReroll {
 		}
 
 		// feel free to use these to detect reroll events 
-		// ReSharper disable EventNeverSubscribedTo.Global
 		public event Action OnMapRerolled;
 		public event Action OnGeysersRerolled;
 
@@ -31,19 +34,16 @@ namespace MapReroll {
 			get { return base.Logger; }
 		}
 
-		private MapRerollState _state;
 		public MapRerollState RerollState {
-			get { return _state ?? (_state = new MapRerollState()); }
-		}
-		public class MapRerollState {
-			// % of resources remaining as currency for rerolls
-			public float ResourcesPercentBalance;
-			// the world seed before any rerolls
-			public string OriginalWorldSeed;
-			// the world seed of the last performed reroll
-			public string LastRerollSeed;
-			// the MapInitData the player initially started with
-			public GameInitData InitData;
+			get {
+				var comp = TryGetStateComponentFromCurrentMap();
+				return comp == null ? null : comp.State;
+			}
+			private set {
+				var comp = TryGetStateComponentFromCurrentMap();
+				if (comp == null) throw new Exception("Could not set MapRerollState- no visible map or state map component");
+				comp.State = value;
+			}
 		}
 
 		private MapRerollSettings _settingHandles;
@@ -55,12 +55,12 @@ namespace MapReroll {
 			private set { _settingHandles = value; }
 		}
 
-		internal bool RerollInProgress {
-			get { return mapRerollTriggered; }
-		}
+		internal bool RerollInProgress { get; private set; }
 
 		private readonly MapRerollUIController uiController;
-		private bool mapRerollTriggered;
+		private MapComponent_MapRerollState lastReturnedMapComponent;
+		private Map mapBeingLoaded;
+		private MapRerollState stateFromLastMap;
 
 		private MapRerollController() {
 			_instance = this;
@@ -77,40 +77,59 @@ namespace MapReroll {
 		}
 
 		public override void MapComponentsInitializing(Map map) {
-			RerollState.InitData = Current.Game.InitData;
+			mapBeingLoaded = map;
+			var initData = Current.Game.InitData;
 			if (Scribe.mode == LoadSaveMode.LoadingVars) {
 				// loading a save. InitData could still be set from previous map generation
-				RerollState.InitData = null;
+				initData = null;
 			}
+			if (stateFromLastMap != null) {
+				// state is stored in the map, so the last one was lost. Restore it in the newly generated map.
+				RerollState = stateFromLastMap;
+				stateFromLastMap = null;
+			}
+			if (initData != null && !RerollInProgress) {
+				// this might be a post-reroll load, so we take only the MapInitData info
+				if (RerollState == null) RerollState = new MapRerollState();
+				RerollState.ResourcesPercentBalance = 100f;
+				RerollState.OriginalWorldSeed = Find.World.info.seedString;
+				RerollState.LastRerollSeed = RerollState.OriginalWorldSeed;
+				RerollState.HasInitData = true;
+				RerollState.StartingTile = initData.startingTile;
+				RerollState.MapSize = initData.mapSize;
+				RerollState.StartingSeason = initData.startingSeason;
+				RerollState.Permadeath = initData.permadeath;
+			}
+			mapBeingLoaded = null;
 		}
 
 		public override void MapLoaded(Map map) {
-			if(!ModIsActive) return;
-			if(RerollState.InitData == null) return; // map was loaded from save
+			if (RerollState == null) return; // mod was added to an existing map 
+			if (!RerollState.HasInitData) {
+				Logger.Error("MapRerollState found, but state has no map init data: "+RerollState);
+				return;
+			} 
 			
 			MapRerollToolbox.ResetScattererGensteps(MapRerollToolbox.TryGetMostLikelyMapGenerator());
-			MapRerollToolbox.TryStopStartingPawnVomiting(RerollState);
+			MapRerollToolbox.TryStopStartingPawnVomiting(map);
 
 			if (!SettingHandles.PaidRerolls) {
 				RerollState.ResourcesPercentBalance = 100f;
 			}
-			if(mapRerollTriggered) {
+			if(RerollInProgress) {
 				if (SettingHandles.PaidRerolls) {
 					// adjust map to current remaining resources and charge for the reroll
 					MapRerollToolbox.ReduceMapResources(map, 100 - (RerollState.ResourcesPercentBalance), 100);
 					MapRerollToolbox.SubtractResourcePercentage(map, MapRerollDefOf.MapRerollSettings.mapRerollCost, RerollState);
 				}
-				MapRerollToolbox.RecordPodLandingTaleForColonists(RerollState.InitData.startingPawns, Find.Scenario);
+				MapRerollToolbox.RecordPodLandingTaleForColonists(MapRerollToolbox.GetAllColonistsOnMap(map), Find.Scenario);
 				Find.World.info.seedString = RerollState.OriginalWorldSeed;
 				MapRerollToolbox.KillMapIntroDialog();
 				MapRerollToolbox.LoadingMessages.RestoreVanillaLoadingMessage();
 				if(OnMapRerolled!=null) OnMapRerolled();
-			} else {
-				RerollState.ResourcesPercentBalance = 100f;
-				RerollState.OriginalWorldSeed = RerollState.LastRerollSeed = Find.World.info.seedString;
 			}
-			uiController.MapLoaded(mapRerollTriggered);
-			mapRerollTriggered = false;
+			uiController.MapLoaded(RerollInProgress);
+			RerollInProgress = false;
 		}
 
 		public override void OnGUI() {
@@ -146,12 +165,14 @@ namespace MapReroll {
 		}
 
 		public void RerollMap() {
-			if (mapRerollTriggered) return;
+			if (RerollInProgress) return;
 			try {
 				var map = Find.VisibleMap;
+				var state = RerollState;
+				stateFromLastMap = state;
 				if (map == null) throw new Exception("Must use on a visible map");
-				if(RerollState.InitData == null) throw new Exception("No MapInitData was captured. Trying to reroll a loaded map?");
-				mapRerollTriggered = true;
+				if(!state.HasInitData) throw new Exception("No MapInitData was captured. Trying to reroll a loaded map?");
+				RerollInProgress = true;
 
 				var colonists = MapRerollToolbox.GetAllColonistsOnMap(map);
 				MapRerollToolbox.PrepareColonistsForReroll(colonists);
@@ -164,7 +185,7 @@ namespace MapReroll {
 
 				MapRerollToolbox.ClearShrineCasketOwnersFromWorld(map, sameWorld);
 
-				MapRerollToolbox.DiscardWorldTileFaction(RerollState.InitData.startingTile, sameWorld);
+				MapRerollToolbox.DiscardWorldTileFaction(state.StartingTile, sameWorld);
 				
 				Current.ProgramState = ProgramState.Entry;
 				Current.Game = new Game();
@@ -176,14 +197,14 @@ namespace MapReroll {
 				
 				Find.Scenario.PreConfigure();
 
-				newInitData.permadeath = RerollState.InitData.permadeath;
-				newInitData.startingTile = RerollState.InitData.startingTile;
-				newInitData.startingSeason = RerollState.InitData.startingSeason;
-				newInitData.mapSize = RerollState.InitData.mapSize;
+				newInitData.permadeath = state.Permadeath;
+				newInitData.startingTile = state.StartingTile;
+				newInitData.startingSeason = state.StartingSeason;
+				newInitData.mapSize = state.MapSize;
 
 				Current.Game.World = sameWorld;
 				Current.Game.storyteller = sameStoryteller;
-				RerollState.LastRerollSeed = sameWorld.info.seedString = MapRerollToolbox.GenerateNewRerollSeed(RerollState.LastRerollSeed);
+				state.LastRerollSeed = sameWorld.info.seedString = MapRerollToolbox.GenerateNewRerollSeed(state.LastRerollSeed);
 
 				Find.Scenario.PostWorldGenerate();
 				newInitData.PrepForMapGen();
@@ -225,6 +246,16 @@ namespace MapReroll {
 			handles.LogConsumedResources.VisibilityPredicate = devModeVisible;
 			handles.SecretFound = Settings.GetHandle("secretFound", "", null, false);
 			handles.SecretFound.NeverVisible = true;
+		}
+
+		private MapComponent_MapRerollState TryGetStateComponentFromCurrentMap() {
+			var map = mapBeingLoaded ?? Find.VisibleMap;
+			if (map == null) return null;
+			if (lastReturnedMapComponent != null && lastReturnedMapComponent.map == map) { // cache component for faster access
+				return lastReturnedMapComponent;
+			}
+			lastReturnedMapComponent = map.GetComponent<MapComponent_MapRerollState>();
+			return lastReturnedMapComponent;
 		}
 
 		public class MapRerollSettings {

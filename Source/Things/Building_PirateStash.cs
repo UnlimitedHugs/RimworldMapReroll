@@ -60,7 +60,7 @@ namespace MapReroll {
 			foreach (var pos in GenRadial.RadialCellsAround(Position, DropLocationRadius, false)) {
 				if(!pos.InBounds(Map)) continue;
 				var things = Map.thingGrid.ThingsListAtFast(pos);
-				var validSpot = true;
+				var validSpot = pos.Walkable(Map);
 				for (int i = 0; i < things.Count; i++) {
 					var t = things[i];
 					// skip cells with items
