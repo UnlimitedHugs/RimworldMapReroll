@@ -89,7 +89,7 @@ namespace MapReroll {
 			if (inventory.Count == 0) {
 				nextDropTick = 0;
 				inventory = null;
-				MapRerollController.Instance.TryReceiveSecretLetter(Position, Map);
+				MapRerollToolbox.TryReceiveSecretLetter(Position, Map);
 			}
 			
 		}

@@ -55,15 +55,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Source\BuildingProperties_PirateStash.cs" />
-    <Compile Include="Source\Building_PirateStash.cs" />
-    <Compile Include="Source\Dialog_RerollControls.cs" />
-    <Compile Include="Source\JobDriver_OpenStash.cs" />
+    <Compile Include="Source\Compat\Compat_CrashLanding.cs" />
+    <Compile Include="Source\MapRerollToolbox.cs" />
+    <Compile Include="Source\ReflectionCache.cs" />
+    <Compile Include="Source\Things\BuildingProperties_PirateStash.cs" />
+    <Compile Include="Source\Things\Building_PirateStash.cs" />
+    <Compile Include="Source\UI\Dialog_RerollControls.cs" />
+    <Compile Include="Source\AI\JobDriver_OpenStash.cs" />
     <Compile Include="Source\MapRerollDefOf.cs" />
-    <Compile Include="Source\RerollGUIWidget.cs" />
+    <Compile Include="Source\UI\MapRerollUIController.cs" />
+    <Compile Include="Source\UI\RerollGUIWidget.cs" />
     <Compile Include="Source\MapRerollController.cs" />
     <Compile Include="Source\MapRerollDef.cs" />
-    <Compile Include="Source\WorkGiver_PirateStash.cs" />
+    <Compile Include="Source\AI\WorkGiver_PirateStash.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\HugsLibChecker\HugsLibChecker.csproj">
@@ -76,6 +80,7 @@
       <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>
