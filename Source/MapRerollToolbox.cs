@@ -89,21 +89,6 @@ namespace MapReroll {
 			}
 		}
 
-		// gets the most likely map generator def, since we don't know which one was used to generate the current map
-		public static MapGeneratorDef TryGetMostLikelyMapGenerator() {
-			var allDefs = DefDatabase<MapGeneratorDef>.AllDefsListForReading;
-			var highestSelectionWeight = -1f;
-			MapGeneratorDef highestWeightDef = null;
-			for (int i = 0; i < allDefs.Count; i++) {
-				var def = allDefs[i];
-				if (def.selectionWeight > highestSelectionWeight) {
-					highestSelectionWeight = def.selectionWeight;
-					highestWeightDef = def;
-				}
-			}
-			return highestWeightDef;
-		}
-
 		// Genstep_Scatterer instances build up internal state during generation
 		// if not reset, after enough rerolls, the map generator will fail to find spots to place geysers, items, resources, etc.
 		public static void ResetScattererGensteps(MapGeneratorDef mapGenerator) {
@@ -182,8 +167,7 @@ namespace MapReroll {
 			return map.listerThings.AllThings.Where(t => t.def != null && t.def.building != null && t.def.building.mineableScatterCommonality > 0).ToList();
 		}
 
-		public static GenStep_ScatterThings TryGetGeyserGenstep() {
-			var mapGenDef = TryGetMostLikelyMapGenerator();
+		public static GenStep_ScatterThings TryGetGeyserGenstep(MapGeneratorDef mapGenDef) {
 			if (mapGenDef == null) return null;
 			return (GenStep_ScatterThings)mapGenDef.GenSteps.Find(g => {
 				var gen = g.genStep as GenStep_ScatterThings;

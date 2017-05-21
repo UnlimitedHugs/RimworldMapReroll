@@ -23,7 +23,10 @@ namespace MapReroll {
 
 		private static MapRerollController _instance;
 		public static MapRerollController Instance {
-			get { return _instance; }
+			get {
+				if (_instance == null) throw new NullReferenceException("MapRerollController as not been initialized by HugsLib");
+				return _instance;
+			}
 		}
 
 		// feel free to use these to detect reroll events 
@@ -33,7 +36,7 @@ namespace MapReroll {
 		internal new ModLogger Logger {
 			get { return base.Logger; }
 		}
-
+		
 		public MapRerollState RerollState {
 			get {
 				var comp = TryGetStateComponentFromCurrentMap();
@@ -59,7 +62,6 @@ namespace MapReroll {
 
 		private readonly MapRerollUIController uiController;
 		private MapComponent_MapRerollState lastReturnedMapComponent;
-		private Map mapBeingLoaded;
 		private MapRerollState stateFromLastMap;
 
 		private MapRerollController() {
@@ -77,7 +79,7 @@ namespace MapReroll {
 		}
 
 		public override void MapComponentsInitializing(Map map) {
-			mapBeingLoaded = map;
+			var stateComp = GetStateComponentFromMap(map); // since VisibleMap is not set yet, this is needed to access RerollState
 			var initData = Current.Game.InitData;
 			if (Scribe.mode == LoadSaveMode.LoadingVars) {
 				// loading a save. InitData could still be set from previous map generation
@@ -85,32 +87,49 @@ namespace MapReroll {
 			}
 			if (stateFromLastMap != null) {
 				// state is stored in the map, so the last one was lost. Restore it in the newly generated map.
-				RerollState = stateFromLastMap;
+				stateComp.State = stateFromLastMap;
 				stateFromLastMap = null;
 			}
 			if (initData != null && !RerollInProgress) {
 				// this might be a post-reroll load, so we take only the MapInitData info
-				if (RerollState == null) RerollState = new MapRerollState();
-				RerollState.ResourcesPercentBalance = 100f;
-				RerollState.OriginalWorldSeed = Find.World.info.seedString;
-				RerollState.LastRerollSeed = RerollState.OriginalWorldSeed;
-				RerollState.HasInitData = true;
-				RerollState.StartingTile = initData.startingTile;
-				RerollState.MapSize = initData.mapSize;
-				RerollState.StartingSeason = initData.startingSeason;
-				RerollState.Permadeath = initData.permadeath;
+				var state = stateComp.State;
+				if (state == null) stateComp.State = state = new MapRerollState();
+				state.ResourcesPercentBalance = 100f;
+				state.OriginalWorldSeed = Find.World.info.seedString;
+				state.LastRerollSeed = state.OriginalWorldSeed;
+				state.HasInitData = true;
+				state.StartingTile = initData.startingTile;
+				state.MapSize = initData.mapSize;
+				state.StartingSeason = initData.startingSeason;
+				state.Permadeath = initData.permadeath;
 			}
-			mapBeingLoaded = null;
+		}
+
+		public void ReportUsedMapGenerator(Map map, MapGeneratorDef mapGenerator) {
+			var state = GetStateComponentFromMap(map).State;
+			if (state == null) {
+				Logger.Error("Cannot store used map generator- reroll state has not been set yet: " + Environment.StackTrace);
+				return;
+			}
+			state.UsedMapGenerator = mapGenerator;
 		}
 
 		public override void MapLoaded(Map map) {
 			if (RerollState == null) return; // mod was added to an existing map 
-			if (!RerollState.HasInitData) {
-				Logger.Error("MapRerollState found, but state has no map init data: "+RerollState);
+			var noInitData = !RerollState.HasInitData;
+			var noMapGenerator = RerollState.UsedMapGenerator == null;
+			if (noInitData || noMapGenerator) {
+				if (noInitData) {
+					Logger.Error("MapRerollState found, but state has no map init data: " + RerollState);
+				}
+				if (noMapGenerator) {
+					Logger.Error("Map generator could not be captured: " + RerollState);
+				}
+				RerollState = null;
 				return;
-			} 
+			}
 			
-			MapRerollToolbox.ResetScattererGensteps(MapRerollToolbox.TryGetMostLikelyMapGenerator());
+			MapRerollToolbox.ResetScattererGensteps(RerollState.UsedMapGenerator);
 			MapRerollToolbox.TryStopStartingPawnVomiting(map);
 
 			if (!SettingHandles.PaidRerolls) {
@@ -137,6 +156,7 @@ namespace MapReroll {
 		}
 
 		public bool CanAffordOperation(MapRerollType type) {
+			EnsureStateInfoExists();
 			float cost = 0;
 			switch (type) {
 				case MapRerollType.Map: cost = MapRerollDefOf.MapRerollSettings.mapRerollCost; break;
@@ -146,10 +166,11 @@ namespace MapReroll {
 		}
 
 		public void RerollGeysers() {
+			EnsureStateInfoExists();
 			try {
 				var map = Find.VisibleMap;
 				if (map == null) throw new Exception("Must use on a visible map");
-				var geyserGen = MapRerollToolbox.TryGetGeyserGenstep();
+				var geyserGen = MapRerollToolbox.TryGetGeyserGenstep(RerollState.UsedMapGenerator);
 				if (geyserGen != null) {
 					MapRerollToolbox.TryGenerateGeysersWithNewLocations(map, geyserGen);
 					if (SettingHandles.PaidRerolls) {
@@ -165,6 +186,7 @@ namespace MapReroll {
 		}
 
 		public void RerollMap() {
+			EnsureStateInfoExists();
 			if (RerollInProgress) return;
 			try {
 				var map = Find.VisibleMap;
@@ -249,13 +271,24 @@ namespace MapReroll {
 		}
 
 		private MapComponent_MapRerollState TryGetStateComponentFromCurrentMap() {
-			var map = mapBeingLoaded ?? Find.VisibleMap;
+			var map = Find.VisibleMap;
 			if (map == null) return null;
 			if (lastReturnedMapComponent != null && lastReturnedMapComponent.map == map) { // cache component for faster access
 				return lastReturnedMapComponent;
 			}
-			lastReturnedMapComponent = map.GetComponent<MapComponent_MapRerollState>();
+			lastReturnedMapComponent = GetStateComponentFromMap(map);
 			return lastReturnedMapComponent;
+		}
+
+		private MapComponent_MapRerollState GetStateComponentFromMap(Map map) {
+			if (map == null) throw new NullReferenceException("map is null");
+			var comp = map.GetComponent<MapComponent_MapRerollState>();
+			if (comp == null) throw new NullReferenceException("Map does not have expected MapComponent_MapRerollState");
+			return comp;
+		}
+
+		private void EnsureStateInfoExists() {
+			if (RerollState == null) throw new Exception("Current map has no reroll state information");
 		}
 
 		public class MapRerollSettings {

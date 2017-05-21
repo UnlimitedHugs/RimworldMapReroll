@@ -59,6 +59,7 @@
     <Compile Include="Source\MapComponent_MapRerollState.cs" />
     <Compile Include="Source\MapRerollState.cs" />
     <Compile Include="Source\MapRerollToolbox.cs" />
+    <Compile Include="Source\Patches\MapGenerator_GenerateMap_Patch.cs" />
     <Compile Include="Source\ReflectionCache.cs" />
     <Compile Include="Source\Things\BuildingProperties_PirateStash.cs" />
     <Compile Include="Source\Things\Building_PirateStash.cs" />

@@ -25,6 +25,8 @@ namespace MapReroll {
 		public int MapSize;
 		public Season StartingSeason;
 		public bool Permadeath;
+		
+		public MapGeneratorDef UsedMapGenerator;
 
 		public void ExposeData() {
 			Scribe_Values.Look(ref ResourcesPercentBalance, "resourcesPercentBalance", 0);
@@ -35,6 +37,7 @@ namespace MapReroll {
 			Scribe_Values.Look(ref MapSize, "mapSize", MapRerollController.DefaultMapSize);
 			Scribe_Values.Look(ref StartingSeason, "startingSeason", Season.Undefined);
 			Scribe_Values.Look(ref Permadeath, "permadeath", false);
+			Scribe_Defs.Look(ref UsedMapGenerator, "usedMapGenerator");
 		}
 		
 		public override string ToString() {
