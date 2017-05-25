@@ -38,44 +38,55 @@ namespace MapReroll {
 		}
 
 		public override void PostOpen() {
-			var widgetRect = RerollGUIWidget.GetWidgetRect();
-			windowRect = new Rect((widgetRect.x + widgetRect.width)/Prefs.UIScale - InitialSize.x, widgetRect.y/Prefs.UIScale, InitialSize.x, InitialSize.y);
+			ResetPosition();
 		}
 
 		public override void DoWindowContents(Rect inRect) {
-			float diceButtonSize = MapRerollController.Instance.WidgetSize;
+			var rerollState = MapRerollController.Instance.RerollState;
+			float diceButtonSize = MapRerollController.Instance.SettingHandles.WidgetSize;
 			var buttonRect = new Rect((inRect.width - diceButtonSize) + Margin, -Margin, diceButtonSize, diceButtonSize);
 			if (Widgets.ButtonImage(buttonRect, UITex_CloseDialogDice)) {
 				Close();
 			}
-			var contentsRect = new Rect(inRect.x + ContentsPadding, inRect.y + ContentsPadding, inRect.width - ContentsPadding * 2, inRect.height - ContentsPadding * 2);
+			var contentsRect = new Rect(inRect.x + ContentsPadding, inRect.y + ContentsPadding, inRect.width - ContentsPadding*2, inRect.height - ContentsPadding*2);
 			Text.Anchor = TextAnchor.MiddleCenter;
 			Text.Font = GameFont.Medium;
 			Widgets.Label(new Rect(contentsRect.x, contentsRect.y, contentsRect.width, 30f), "MapReroll_windowTitle".Translate());
 			Text.Font = GameFont.Small;
-			var paidRerolls = MapRerollController.Instance.PaidRerolls;
-			var resourcesLabelText = paidRerolls ? "MapReroll_oresLeft".Translate(MapRerollController.Instance.ResourcePercentageRemaining) : "MapReroll_freeRerollsLabel".Translate();
+			var paidRerolls = MapRerollController.Instance.SettingHandles.PaidRerolls;
+
+			var resourcesLabelText = paidRerolls ? "MapReroll_oresLeft".Translate(rerollState == null ? 0 : rerollState.ResourcesPercentBalance) : "MapReroll_freeRerollsLabel".Translate();
 			Widgets.Label(new Rect(contentsRect.x, contentsRect.y + 40f, contentsRect.width, 25f), resourcesLabelText);
 			Text.Anchor = TextAnchor.UpperLeft;
-			var mapCostSuffix = "MapReroll_resourceCost_suffix".Translate(MapRerollController.Instance.SettingsDef.mapRerollCost);
+			var mapCostSuffix = "MapReroll_resourceCost_suffix".Translate(MapRerollDefOf.MapRerollSettings.mapRerollCost);
 			var rerollMapLabel = "MapReroll_rerollMapBtn".Translate(paidRerolls ? mapCostSuffix : "");
 			var rerollMapHit = Widgets.ButtonText(new Rect(contentsRect.x, contentsRect.y + 80f, contentsRect.width, 40f), rerollMapLabel);
-			var geyserCostSuffix = "MapReroll_resourceCost_suffix".Translate(MapRerollController.Instance.SettingsDef.geyserRerollCost);
+			var geyserCostSuffix = "MapReroll_resourceCost_suffix".Translate(MapRerollDefOf.MapRerollSettings.geyserRerollCost);
 			var geyserRerollLabel = "MapReroll_rerollGeysersBtn".Translate(paidRerolls ? geyserCostSuffix : "");
 			var rerollGeysersHit = Widgets.ButtonText(new Rect(contentsRect.x, contentsRect.y + 125f, contentsRect.width, 40f), geyserRerollLabel);
-			if (rerollMapHit && CanAffordOperation(MapRerollController.MapRerollType.Map) && mapRerollTimeout==0) {
+			if (rerollMapHit && CanAffordOperation(MapRerollController.MapRerollType.Map) && mapRerollTimeout == 0) {
 				MapRerollDefOf.RerollDiceRoll.PlayOneShotOnCamera();
 				mapRerollTimeout = Time.time + diceSoundDuration;
 			}
-			if(rerollGeysersHit && CanAffordOperation(MapRerollController.MapRerollType.Geyser)) {
+			if (rerollGeysersHit && CanAffordOperation(MapRerollController.MapRerollType.Geyser)) {
 				MapRerollDefOf.RerollSteamVent.PlayOneShotOnCamera();
 				MapRerollController.Instance.RerollGeysers();
 			}
 			// give an extra moment for the button sound to finish playing
-			if(mapRerollTimeout!=0 && Time.time>=mapRerollTimeout){
+			if (mapRerollTimeout != 0 && Time.time >= mapRerollTimeout) {
 				mapRerollTimeout = 0;
 				MapRerollController.Instance.RerollMap();
 			}
+		}
+
+		// ensure the window is always in the right position over the dice button
+		public override void Notify_ResolutionChanged() {
+			ResetPosition();
+		}
+
+		private void ResetPosition() {
+			var widgetRect = MapRerollUIController.GetWidgetRect();
+			windowRect = new Rect(widgetRect.x + widgetRect.width - InitialSize.x, widgetRect.y, InitialSize.x, InitialSize.y);
 		}
 
 		private bool CanAffordOperation(MapRerollController.MapRerollType operation) {

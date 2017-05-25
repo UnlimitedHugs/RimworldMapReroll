@@ -1,178 +1,181 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
+﻿// ReSharper disable EventNeverSubscribedTo.Global
+using System;
 using HugsLib;
 using HugsLib.Settings;
 using HugsLib.Utils;
-using RimWorld;
-using RimWorld.Planet;
-using UnityEngine;
 using Verse;
-using Verse.Sound;
-using Random = UnityEngine.Random;
 
 namespace MapReroll {
+	/// <summary>
+	/// The hub of the mod. Instantiated by HugsLib.
+	/// </summary>
 	public class MapRerollController : ModBase {
-		private const int DefaultWidgetSize = 48;
-		private const int MinWidgetSize = 16;
-		private const int MaxWidgetSize = 64;
-		private const float DefaultMapSize = 250*250;
-		private const float LargestMapSize = 400*400;
-		private const sbyte ThingMemoryState = -2;
-		private const sbyte ThingDiscardedState = -3;
+		internal const int DefaultMapSize = 250*250;
+		internal const int LargestMapSize = 400*400;
 
 		public enum MapRerollType {
 			Map, Geyser
 		}
 
-		private static MapRerollController instance;
-		public static MapRerollController Instance {
-			get {
-				return instance ?? (instance = new MapRerollController());
-			}
-		}
-
-		private const string LoadingMessageKey = "GeneratingMap";
-		private const string CustomLoadingMessagePrefix = "MapReroll_loading";
-		private const string CrashLandingHardArrivePartTypeName = "CrashLanding.ScenPart_PlayerPawnsArriveMethodCrash";
-
-		// feel free to use these to detect reroll events 
-		// ReSharper disable EventNeverSubscribedTo.Global
-		public event Action OnMapRerolled;
-		public event Action OnGeysersRerolled;
-
 		public override string ModIdentifier {
 			get { return "MapReroll"; }
 		}
 
-		public MapRerollDef SettingsDef {
-			get { return MapRerollDefOf.MapRerollSettings; }
+		private static MapRerollController _instance;
+		public static MapRerollController Instance {
+			get {
+				if (_instance == null) throw new NullReferenceException("MapRerollController as not been initialized by HugsLib");
+				return _instance;
+			}
 		}
 
-		public bool ShowInterface {
-			get { return Current.ProgramState == ProgramState.Playing 
-				&& !mapRerollTriggered 
-				&& SettingsDef.enableInterface 
-				&& Current.Game != null 
-				&& Current.Game.VisibleMap != null 
-				&& capturedInitData != null 
-				&& Current.Game.VisibleMap.Tile == capturedInitData.startingTile 
-				&& !Faction.OfPlayer.HasName; }
-		}
-
-		public float WidgetSize {
-			get { return settingWidgetSize.Value; }
-		}
-
-		public bool PaidRerolls {
-			get { return settingPaidRerolls.Value; }
-		}
+		// feel free to use these to detect reroll events 
+		public event Action OnMapRerolled;
+		public event Action OnGeysersRerolled;
 
 		internal new ModLogger Logger {
 			get { return base.Logger; }
 		}
-
-		public float ResourcePercentageRemaining { get; private set; }
 		
-		private readonly RerollGUIWidget guiWidget;
+		public MapRerollState RerollState {
+			get {
+				var comp = TryGetStateComponentFromCurrentMap();
+				return comp == null ? null : comp.State;
+			}
+			private set {
+				var comp = TryGetStateComponentFromCurrentMap();
+				if (comp == null) throw new Exception("Could not set MapRerollState- no visible map or state map component");
+				comp.State = value;
+			}
+		}
 
-		private FieldInfo thingPrivateStateField;
-		private FieldInfo genstepScattererProtectedUsedSpots;
-		private FieldInfo arrivalMethodMethodField;
-		private FieldInfo scenarioPartsField;
-		private FieldInfo arrivalMethodField;
-		private FieldInfo createIncidentIsFinishedField;
-		private Type scenPartCreateIncidentType;
+		private MapRerollSettings _settingHandles;
+		internal MapRerollSettings SettingHandles {
+			get {
+				if(_settingHandles == null) throw new Exception("Setting handles have not been initialized yet");
+				return _settingHandles;
+			}
+			private set { _settingHandles = value; }
+		}
 
-		private bool mapRerollTriggered;
-		private string originalWorldSeed;
-		private string lastRerollSeed;
-		private GameInitData capturedInitData;
-		private string stockLoadingMessage;
-		private int numAvailableLoadingMessages;
-		private int originalMapResourceCount;
+		internal bool RerollInProgress { get; private set; }
 
-		private SettingHandle<bool> settingPaidRerolls; 
-		private SettingHandle<bool> settingLoadingMessages; 
-		private SettingHandle<int>  settingWidgetSize;
-		private SettingHandle<bool> settingLogConsumedResources;
-		private SettingHandle<bool> settingNoVomiting;
-		private SettingHandle<bool> settingSecretFound;
-		
+		private readonly MapRerollUIController uiController;
+		private MapComponent_MapRerollState lastReturnedMapComponent;
+		private MapRerollState stateFromLastMap;
+
 		private MapRerollController() {
-			instance = this;
-			guiWidget = new RerollGUIWidget();
+			_instance = this;
+			uiController = new MapRerollUIController();
 		}
 
 		public override void Initialize() {
-			PrepareReflectionReferences();
+			ReflectionCache.PrepareReflection();
 		}
 
 		public override void DefsLoaded() {
-			numAvailableLoadingMessages = CountAvailableLoadingMessages();
+			MapRerollToolbox.LoadingMessages.UpdateAvailableLoadingMessageCount();
 			PrepareSettingsHandles();
 		}
 
 		public override void MapComponentsInitializing(Map map) {
-			capturedInitData = Current.Game.InitData;
+			var stateComp = GetStateComponentFromMap(map); // since VisibleMap is not set yet, this is needed to access RerollState
+			var initData = Current.Game.InitData;
 			if (Scribe.mode == LoadSaveMode.LoadingVars) {
 				// loading a save. InitData could still be set from previous map generation
-				capturedInitData = null;
+				initData = null;
 			}
+			if (stateFromLastMap != null) {
+				// state is stored in the map, so the last one was lost. Restore it in the newly generated map.
+				stateComp.State = stateFromLastMap;
+				stateFromLastMap = null;
+			}
+			if (initData != null && !RerollInProgress) {
+				// this might be a post-reroll load, so we take only the MapInitData info
+				var state = stateComp.State;
+				if (state == null) stateComp.State = state = new MapRerollState();
+				state.ResourcesPercentBalance = 100f;
+				state.OriginalWorldSeed = Find.World.info.seedString;
+				state.LastRerollSeed = state.OriginalWorldSeed;
+				state.HasInitData = true;
+				state.StartingTile = initData.startingTile;
+				state.MapSize = initData.mapSize;
+				state.StartingSeason = initData.startingSeason;
+				state.Permadeath = initData.permadeath;
+			}
+		}
+
+		public void ReportUsedMapGenerator(Map map, MapGeneratorDef mapGenerator) {
+			var state = GetStateComponentFromMap(map).State;
+			if (state == null) {
+				Logger.Error("Cannot store used map generator- reroll state has not been set yet: " + Environment.StackTrace);
+				return;
+			}
+			state.UsedMapGenerator = mapGenerator;
 		}
 
 		public override void MapLoaded(Map map) {
-			if(!ModIsActive) return;
-			if(capturedInitData == null) return; // map was loaded from save
-			
-			ResetScattererGensteps();
-			TryStopStartingPawnVomiting();
-
-			originalMapResourceCount = GetAllResourcesOnMap(map).Count;
-			if (!settingPaidRerolls) {
-				ResourcePercentageRemaining = 100f;
-			}
-			if(mapRerollTriggered) {
-				if (settingPaidRerolls) {
-					// adjust map to current remaining resources and charge for the reroll
-					ReduceMapResources(map, 100 - (ResourcePercentageRemaining), 100); 
-					SubtractResourcePercentage(map, SettingsDef.mapRerollCost);
+			if (RerollState == null) return; // mod was added to an existing map 
+			var noInitData = !RerollState.HasInitData;
+			var noMapGenerator = RerollState.UsedMapGenerator == null;
+			if (noInitData || noMapGenerator) {
+				if (noInitData) {
+					Logger.Error("MapRerollState found, but state has no map init data: " + RerollState);
 				}
-				RecordPodLandingTaleForColonists(capturedInitData.startingPawns);
-				Find.World.info.seedString = originalWorldSeed;
-				KillIntroDialog();
-				RestoreVanillaLoadingMessage();
-				if(OnMapRerolled!=null) OnMapRerolled();
-			} else {
-				ResourcePercentageRemaining = 100f;
-				lastRerollSeed = originalWorldSeed = Find.World.info.seedString;
+				if (noMapGenerator) {
+					Logger.Error("Map generator could not be captured: " + RerollState);
+				}
+				RerollState = null;
+				return;
 			}
-			guiWidget.Initialize(mapRerollTriggered);
-			mapRerollTriggered = false;
+			
+			MapRerollToolbox.ResetScattererGensteps(RerollState.UsedMapGenerator);
+			MapRerollToolbox.TryStopStartingPawnVomiting(map);
+
+			if (!SettingHandles.PaidRerolls) {
+				RerollState.ResourcesPercentBalance = 100f;
+			}
+			if(RerollInProgress) {
+				if (SettingHandles.PaidRerolls) {
+					// adjust map to current remaining resources and charge for the reroll
+					MapRerollToolbox.ReduceMapResources(map, 100 - (RerollState.ResourcesPercentBalance), 100);
+					MapRerollToolbox.SubtractResourcePercentage(map, MapRerollDefOf.MapRerollSettings.mapRerollCost, RerollState);
+				}
+				MapRerollToolbox.RecordPodLandingTaleForColonists(MapRerollToolbox.GetAllColonistsOnMap(map), Find.Scenario);
+				Find.World.info.seedString = RerollState.OriginalWorldSeed;
+				MapRerollToolbox.KillMapIntroDialog();
+				MapRerollToolbox.LoadingMessages.RestoreVanillaLoadingMessage();
+				if(OnMapRerolled!=null) OnMapRerolled();
+			}
+			uiController.MapLoaded(RerollInProgress);
+			RerollInProgress = false;
 		}
 
 		public override void OnGUI() {
-			guiWidget.OnGUI();
+			uiController.OnGUI();
 		}
 
 		public bool CanAffordOperation(MapRerollType type) {
+			EnsureStateInfoExists();
 			float cost = 0;
 			switch (type) {
-				case MapRerollType.Map: cost = SettingsDef.mapRerollCost; break;
-				case MapRerollType.Geyser: cost = SettingsDef.geyserRerollCost; break;
+				case MapRerollType.Map: cost = MapRerollDefOf.MapRerollSettings.mapRerollCost; break;
+				case MapRerollType.Geyser: cost = MapRerollDefOf.MapRerollSettings.geyserRerollCost; break;
 			}
-			return !settingPaidRerolls || ResourcePercentageRemaining >= cost;
+			return !SettingHandles.PaidRerolls || RerollState.ResourcesPercentBalance >= cost;
 		}
 
 		public void RerollGeysers() {
+			EnsureStateInfoExists();
 			try {
 				var map = Find.VisibleMap;
 				if (map == null) throw new Exception("Must use on a visible map");
-				var geyserGen = TryGetGeyserGenstep();
+				var geyserGen = MapRerollToolbox.TryGetGeyserGenstep(RerollState.UsedMapGenerator);
 				if (geyserGen != null) {
-					TryGenerateGeysersWithNewLocations(map, geyserGen);
-					if (settingPaidRerolls) SubtractResourcePercentage(map, SettingsDef.geyserRerollCost);
+					MapRerollToolbox.TryGenerateGeysersWithNewLocations(map, geyserGen);
+					if (SettingHandles.PaidRerolls) {
+						MapRerollToolbox.SubtractResourcePercentage(map, MapRerollDefOf.MapRerollSettings.geyserRerollCost, RerollState);
+					}
 					if (OnGeysersRerolled != null) OnGeysersRerolled();
 				} else {
 					Logger.Error("Failed to find the Genstep for geysers. Check your map generator config.");
@@ -183,14 +186,18 @@ namespace MapReroll {
 		}
 
 		public void RerollMap() {
-			if (mapRerollTriggered) return;
+			EnsureStateInfoExists();
+			if (RerollInProgress) return;
 			try {
 				var map = Find.VisibleMap;
+				var state = RerollState;
+				stateFromLastMap = state;
 				if (map == null) throw new Exception("Must use on a visible map");
-				if(capturedInitData == null) throw new Exception("No MapInitData was captured. Trying to reroll a loaded map?");
-				mapRerollTriggered = true;
+				if(!state.HasInitData) throw new Exception("No MapInitData was captured. Trying to reroll a loaded map?");
+				RerollInProgress = true;
 
-				var colonists = PrepareColonistsForReroll(map);
+				var colonists = MapRerollToolbox.GetAllColonistsOnMap(map);
+				MapRerollToolbox.PrepareColonistsForReroll(colonists);
 
 				Find.Selector.SelectedObjects.Clear();
 
@@ -198,35 +205,30 @@ namespace MapReroll {
 				var sameScenario = Current.Game.Scenario;
 				var sameStoryteller = Current.Game.storyteller;
 
-				// clear all shrine casket corpse owners from world
-				foreach (var thing in map.listerThings.ThingsOfDef(ThingDefOf.AncientCryptosleepCasket)) {
-					var casket = thing as Building_AncientCryptosleepCasket;
-					if(casket == null) continue;
-					var corpse = casket.ContainedThing as Corpse;
-					if (corpse == null || !sameWorld.worldPawns.Contains(corpse.InnerPawn)) continue;
-					sameWorld.worldPawns.RemovePawn(corpse.InnerPawn);
-				}
+				MapRerollToolbox.ClearShrineCasketOwnersFromWorld(map, sameWorld);
 
-				// discard the old player faction so that scenarios can do their thing
-				DiscardWorldTileFaction(capturedInitData.startingTile);
-
+				MapRerollToolbox.DiscardWorldTileFaction(state.StartingTile, sameWorld);
+				
 				Current.ProgramState = ProgramState.Entry;
 				Current.Game = new Game();
 				var newInitData = Current.Game.InitData = new GameInitData();
 				Current.Game.Scenario = sameScenario;
-				ResetIncidentScenarioParts(sameScenario);
-				TryReplaceHardCrashLandingPawnStart(sameScenario);
+				
+				MapRerollToolbox.ResetIncidentScenarioParts(sameScenario);
+				Compat_CrashLanding.TryReplaceHardCrashLandingPawnStart(sameScenario);
+				
 				Find.Scenario.PreConfigure();
-				newInitData.permadeath = capturedInitData.permadeath;
-				newInitData.startingTile = capturedInitData.startingTile;
-				newInitData.startingMonth = capturedInitData.startingMonth;
-				newInitData.mapSize = capturedInitData.mapSize;
+
+				newInitData.permadeath = state.Permadeath;
+				newInitData.startingTile = state.StartingTile;
+				newInitData.startingSeason = state.StartingSeason;
+				newInitData.mapSize = state.MapSize;
 
 				Current.Game.World = sameWorld;
 				Current.Game.storyteller = sameStoryteller;
-				lastRerollSeed = sameWorld.info.seedString = GenerateNewRerollSeed(lastRerollSeed);
+				state.LastRerollSeed = sameWorld.info.seedString = MapRerollToolbox.GenerateNewRerollSeed(state.LastRerollSeed);
 
-				Find.Scenario.PostWorldLoad();
+				Find.Scenario.PostWorldGenerate();
 				newInitData.PrepForMapGen();
 				Find.Scenario.PreMapGenerate();
 
@@ -238,380 +240,64 @@ namespace MapReroll {
 					startingPawn.SetFactionDirect(newInitData.playerFaction);
 				}
 
-				SetCustomLoadingMessage();
+				MapRerollToolbox.LoadingMessages.SetCustomLoadingMessage(SettingHandles.LoadingMessages);
 				LongEventHandler.QueueLongEvent(null, "Play", "GeneratingMap", true, GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap);
 			} catch (Exception e) {
 				Logger.ReportException(e);
 			}
 		}
 
-		// create a deterministic but sufficiently random new seed
-			private
-			string GenerateNewRerollSeed(string previousSeed) {
-			const int magicNumber = 3;
-			unchecked {
-				return ((previousSeed.GetHashCode() << 1) * magicNumber).ToString();
-			}
-		}
-
-		private List<Pawn> PrepareColonistsForReroll(Map map) {
-			var colonists = map.mapPawns.PawnsInFaction(Faction.OfPlayer).Where(p => p.IsColonist).ToList();
-			var rerollColonists = new List<Pawn>();
-			foreach (var pawn in colonists) {
-				if (pawn.Spawned) { // pawn might still be in pod
-					pawn.ClearMind();
-					pawn.ClearReservations();
-					pawn.needs.SetInitialLevels();
-					pawn.equipment.DestroyAllEquipment();
-					pawn.Drawer.renderer.graphics.flasher = new DamageFlasher(pawn); // fixes damaged pawns being stuck with red tint after reroll
-					pawn.DeSpawn();
-				}
-				// clear relation with bonded pets
-				foreach (var relation in pawn.relations.DirectRelations.ToArray()) {
-					if (relation.def == PawnRelationDefOf.Bond) {
-						pawn.relations.RemoveDirectRelation(relation);
-					}
-				}
-				rerollColonists.Add(pawn);
-			}
-			return rerollColonists;
-		}
-
-		// pawns already start on the ground on rerolled maps, so make sure the tale of their initial landing is preserved
-		private void RecordPodLandingTaleForColonists(IEnumerable<Pawn> colonists) {
-			var scenario = Find.Scenario;
-			var arrivalScenPart = (ScenPart_PlayerPawnsArriveMethod)scenario.AllParts.FirstOrDefault(s => s is ScenPart_PlayerPawnsArriveMethod);
-			if(arrivalScenPart == null) return;
-			var arrivalMethod = (PlayerPawnsArriveMethod)arrivalMethodMethodField.GetValue(arrivalScenPart);
-			if (arrivalMethod == PlayerPawnsArriveMethod.DropPods) {
-				foreach (var pawn in colonists) {
-					if (pawn.RaceProps.Humanlike) {
-						TaleRecorder.RecordTale(TaleDefOf.LandedInPod, pawn);
-					}
-				}
-			}
-		}
-
-		private void SetCustomLoadingMessage() {
-			var customLoadingMessage = stockLoadingMessage = LoadingMessageKey.Translate();
-
-			if (settingLoadingMessages && numAvailableLoadingMessages > 0) {
-				var messageIndex = Rand.Range(0, numAvailableLoadingMessages - 1);
-				var messageKey = CustomLoadingMessagePrefix + messageIndex;
-				if (messageKey.CanTranslate()) {
-					customLoadingMessage = messageKey.Translate();
-				}
-			}
-
-			LanguageDatabase.activeLanguage.keyedReplacements[LoadingMessageKey] = customLoadingMessage;
-		}
-
-		private void RestoreVanillaLoadingMessage() {
-			LanguageDatabase.activeLanguage.keyedReplacements[LoadingMessageKey] = stockLoadingMessage;
-		}
-
-		private void PrepareReflectionReferences() {
-			thingPrivateStateField = typeof(Thing).GetField("mapIndexOrState", BindingFlags.Instance | BindingFlags.NonPublic);
-			genstepScattererProtectedUsedSpots = typeof(GenStep_Scatterer).GetField("usedSpots", BindingFlags.Instance | BindingFlags.NonPublic);
-			arrivalMethodMethodField = typeof (ScenPart_PlayerPawnsArriveMethod).GetField("method", BindingFlags.Instance | BindingFlags.NonPublic);
-			scenarioPartsField = typeof (Scenario).GetField("parts", BindingFlags.Instance | BindingFlags.NonPublic);
-			arrivalMethodField = typeof(ScenPart_PlayerPawnsArriveMethod).GetField("method", BindingFlags.Instance | BindingFlags.NonPublic);
-			scenPartCreateIncidentType = typeof(ScenPart).Assembly.GetType("RimWorld.ScenPart_CreateIncident", false);
-			if (scenPartCreateIncidentType != null) {
-				createIncidentIsFinishedField = scenPartCreateIncidentType.GetField("isFinished", BindingFlags.Instance | BindingFlags.NonPublic);
-			}
-			if (thingPrivateStateField == null || thingPrivateStateField.FieldType != typeof(sbyte)
-				|| genstepScattererProtectedUsedSpots == null || genstepScattererProtectedUsedSpots.FieldType != typeof(List<IntVec3>)
-				|| arrivalMethodMethodField == null || arrivalMethodMethodField.FieldType != typeof(PlayerPawnsArriveMethod)
-				|| scenarioPartsField == null || scenarioPartsField.FieldType != typeof(List<ScenPart>)
-				|| arrivalMethodField == null || arrivalMethodField.FieldType != typeof (PlayerPawnsArriveMethod)
-				|| createIncidentIsFinishedField == null || createIncidentIsFinishedField.FieldType != typeof(bool)) {
-				Logger.Error("Failed to get named fields by reflection");
-			}
-		}
-
-		private void DiscardWorldTileFaction(int tile) {
-			var faction = Find.FactionManager.FactionAtTile(tile);
-			if (faction == null) return;
-			// remove base
-			var factionBases = Find.WorldObjects.FactionBases;
-			for (int i = 0; i < factionBases.Count; i++) {
-				if (factionBases[i].Tile != tile) continue;
-				Find.WorldObjects.Remove(factionBases[i]);
-				break;
-			}
-			// discard faction
-			List<Faction> factionList = Find.World.factionManager.AllFactionsListForReading;
-			faction.RemoveAllRelations();
-			factionList.Remove(faction);
-		}
-
-		// Genstep_Scatterer instances build up internal state during generation
-		// if not reset, after enough rerolls, the map generator will fail to find spots to place geysers, items, resources, etc.
-		private void ResetScattererGensteps() {
-			var mapGenDef = TryGetMostLikelyMapGenerator();
-			if (mapGenDef == null) return;
-			foreach (var genStepDef in mapGenDef.GenStepsInOrder) {
-				var genstepScatterer = genStepDef.genStep as GenStep_Scatterer;
-				if (genstepScatterer != null) {
-					ResetScattererGenstepInternalState(genstepScatterer);		
-				}
-			}
-		}
-
-		private void ResetScattererGenstepInternalState(GenStep_Scatterer genstep) {
-			// field is protected, use reflection
-			var usedSpots = (List<IntVec3>) genstepScattererProtectedUsedSpots.GetValue(genstep);
-			if(usedSpots!=null) {
-				usedSpots.Clear();
-			}
-		}
-
-		// Reset ScenPart_CreateIncident to repeat their incident on the new map
-		private void ResetIncidentScenarioParts(Scenario scenario) {
-			foreach (var part in scenario.AllParts) {
-				if (part != null && part.GetType() == scenPartCreateIncidentType) {
-					createIncidentIsFinishedField.SetValue(part, false);
-				}
-			}
-		}
-
-		// Crash Landing compatibility fix
-		// hard scenario: heal up colonists for a repeat crash landing
-		private void TryReplaceHardCrashLandingPawnStart(Scenario scenario) {
-			var hardArrivePartType = GenTypes.GetTypeInAnyAssembly(CrashLandingHardArrivePartTypeName);
-			if (hardArrivePartType == null) {
-				// crash landing is not loaded
-				return;
-			}
-			var scenParts = (List<ScenPart>)scenarioPartsField.GetValue(scenario);
-			var partIndex = scenParts.FindIndex(p => p != null && p.GetType() == hardArrivePartType);
-			if (partIndex >= 0) {
-				var arriveMethodDef = DefDatabase<ScenPartDef>.GetNamedSilentFail("PlayerPawnsArriveMethod");
-				if (arriveMethodDef != null) {
-					scenParts.RemoveAt(partIndex);
-					var standingPart = new ScenPart_PlayerPawnsArriveMethod {def = arriveMethodDef};
-					arrivalMethodField.SetValue(standingPart, PlayerPawnsArriveMethod.Standing);
-					scenParts.Insert(partIndex, standingPart);
-				} else {
-					Logger.Warning("PlayerPawnsArriveMethod Def not found. Crash Landing compat is off");
-				}
-			}
-		}
-
-		// Genstep_ScatterThings is prone to generating things in the same spot on occasion.
-		// If that happens we try to run it a few more times to try and get new positions.
-		private void TryGenerateGeysersWithNewLocations(Map map, GenStep_ScatterThings geyserGen) {
-			const int MaxGeyserGenerationAttempts = 5;
-			var collisionsDetected = true;
-			var attemptsRemaining = MaxGeyserGenerationAttempts;
-			while (attemptsRemaining>0 && collisionsDetected) {
-				var usedSpots = new HashSet<IntVec3>(GetAllGeyserPositionsOnMap(map));
-				// destroy existing geysers
-				Thing.allowDestroyNonDestroyable = true;
-				map.listerThings.ThingsOfDef(ThingDefOf.SteamGeyser).ForEach(t => t.Destroy());
-				Thing.allowDestroyNonDestroyable = false;
-				// make new geysers
-				geyserGen.Generate(map);
-				// clean up internal state
-				ResetScattererGenstepInternalState(geyserGen);
-				// check if some geysers were generated in the same spots
-				collisionsDetected = false;
-				foreach (var geyserPos in GetAllGeyserPositionsOnMap(map)) {
-					if(usedSpots.Contains(geyserPos)) {
-						collisionsDetected = true;
-					}
-				}
-				attemptsRemaining--;
-			}
-		}
-
-		private IEnumerable<IntVec3> GetAllGeyserPositionsOnMap(Map map) {
-			return map.listerThings.ThingsOfDef(ThingDefOf.SteamGeyser).Select(t => t.Position);
-		}
-
-		private void ReduceMapResources(Map map, float consumePercent, float currentResourcesAtPercent) {
-			if (currentResourcesAtPercent == 0) return;
-			var rockDef = Find.World.NaturalRockTypesIn(map.Tile).FirstOrDefault();
-			var mapResources = GetAllResourcesOnMap(map);
-			
-			var newResourceAmount = Mathf.Clamp(currentResourcesAtPercent - consumePercent, 0, 100);
-			var originalResAmount = Mathf.Ceil(mapResources.Count / (currentResourcesAtPercent/100));
-			var percentageChange = currentResourcesAtPercent - newResourceAmount;
-			var resourceToll = (int)Mathf.Ceil(Mathf.Abs(originalResAmount * (percentageChange/100)));
-
-			var toll = resourceToll;
-			if (mapResources.Count > 0) {
-				// eat random resources
-				while (mapResources.Count > 0 && toll > 0) {
-					var resIndex = Random.Range(0, mapResources.Count);
-					var resThing = mapResources[resIndex];
-
-					SneakilyDestroyResource(resThing);
-					mapResources.RemoveAt(resIndex);
-					if (rockDef != null && !RollForPirateStash(map, resThing.Position)) {
-						// put some rock in their place
-						var rock = ThingMaker.MakeThing(rockDef);
-						GenPlace.TryPlaceThing(rock, resThing.Position, map, ThingPlaceMode.Direct);
-					}
-					toll--;
-				}
-			}
-			if (!Prefs.DevMode || !settingLogConsumedResources) return;
-			Logger.Message("Ordered to consume " + consumePercent + "%, with current resources at " + currentResourcesAtPercent + "%. Consuming " + resourceToll + " resource spots, " + mapResources.Count + " left");
-			if (toll > 0) Logger.Message("Failed to consume " + toll + " resource spots.");
-		}
-
-		private void SubtractResourcePercentage(Map map, float percent) {
-			ReduceMapResources(map, percent, ResourcePercentageRemaining);
-			ResourcePercentageRemaining = Mathf.Clamp(ResourcePercentageRemaining - percent, 0, 100);
-		}
-
-		private List<Thing> GetAllResourcesOnMap(Map map) {
-			return map.listerThings.AllThings.Where(t => t.def != null && t.def.building != null && t.def.building.mineableScatterCommonality > 0).ToList();
-		}
-
-		private bool RollForPirateStash(Map map, IntVec3 position) {
-			var stashDef = MapRerollDefOf.PirateStash.building as BuildingProperties_PirateStash;
-			if (stashDef == null || originalMapResourceCount == 0 || stashDef.commonality == 0 || !LocationIsSuitableForStash(map, position)) return false;
-			var mapSize = map.Size;
-			// bias 0 for default map size, bias 1 for max map size
-			var mapSizeBias = ((((mapSize.x*mapSize.z)/DefaultMapSize) - 1)/((LargestMapSize/DefaultMapSize) - 1)) * stashDef.mapSizeCommonalityBias;
-			var rollSuccess = Rand.Range(0f, 1f) < 1/(originalMapResourceCount/(stashDef.commonality + mapSizeBias));
-			if (!rollSuccess) return false;
-			var stash = ThingMaker.MakeThing(MapRerollDefOf.PirateStash);
-			GenSpawn.Spawn(stash, position, map);
-#if TEST_STASH
-			Logger.Trace("Placed shash at " + position);
-#endif
-			return true;
-		}
-
-		// check for double-thick walls to prevent players peeking through fog
-		private bool LocationIsSuitableForStash(Map map, IntVec3 position) {
-			var grid = map.edificeGrid;
-			if (!position.InBounds(map) || grid[map.cellIndices.CellToIndex(position)] != null) return false;
-			for (int i = 0; i < 4; i++) {
-				if (grid[map.cellIndices.CellToIndex(position + GenAdj.CardinalDirections[i])] == null) return false;
-				if (grid[map.cellIndices.CellToIndex(position + GenAdj.CardinalDirections[i] * 2)] == null) return false;
-			}
-			return true;
-		}
-
-		/*
-		 * destroying a resource outright causes too much overhead: fog, area reveal, pathing, roof updates, etc
-		 * we just want to replace it. So, we just despawn it and do some cleanup.
-		 * As of A13 despawning triggers all of the above. So, we do all the cleanup manually.
-		 * The following is Thing.Despawn code with the unnecessary (for buildings, ar least) parts stripped out, plus key parts from Building.Despawn
-		 * TODO: This approach may break with future releases (if thing despawning changes), so it's worth checking over.
-		 */
-		private void SneakilyDestroyResource(Thing res) {
-			var map = res.Map;
-			map.listerThings.Remove(res);
-			map.thingGrid.Deregister(res);
-			map.coverGrid.DeRegister(res);
-			if (res.def.hasTooltip) {
-				map.tooltipGiverList.DeregisterTooltipGiver(res);
-			}
-			if (res.def.graphicData != null && res.def.graphicData.Linked) {
-				map.linkGrid.Notify_LinkerCreatedOrDestroyed(res);
-				map.mapDrawer.MapMeshDirty(res.Position, MapMeshFlag.Things, true, false);
-			}
-			Find.Selector.Deselect(res);
-			if (res.def.drawerType != DrawerType.RealtimeOnly) {
-				var cellRect = res.OccupiedRect();
-				for (var i = cellRect.minZ; i <= cellRect.maxZ; i++) {
-					for (var j = cellRect.minX; j <= cellRect.maxX; j++) {
-						map.mapDrawer.MapMeshDirty(new IntVec3(j, 0, i), MapMeshFlag.Things);
-					}
-				}
-			}
-			if (res.def.drawerType != DrawerType.MapMeshOnly) {
-				map.dynamicDrawManager.DeRegisterDrawable(res);
-			}
-			thingPrivateStateField.SetValue(res, res.def.DiscardOnDestroyed ? ThingDiscardedState : ThingMemoryState);
-			Find.TickManager.DeRegisterAllTickabilityFor(res);
-			map.attackTargetsCache.Notify_ThingDespawned(res);
-			// building-specific cleanup
-			if(res.def.IsEdifice()) map.edificeGrid.DeRegister((Building)res);
-			map.listerBuildings.Remove((Building) res);
-			map.designationManager.RemoveAllDesignationsOn(res);
-		}
-
-		private GenStep_ScatterThings TryGetGeyserGenstep() {
-			var mapGenDef = TryGetMostLikelyMapGenerator();
-			if (mapGenDef == null) return null;
-			return (GenStep_ScatterThings)mapGenDef.GenStepsInOrder.Find(g => {
-				var gen = g.genStep as GenStep_ScatterThings;
-				return gen != null && gen.thingDef == ThingDefOf.SteamGeyser;
-			}).genStep;
-		}
-		
-		private void KillIntroDialog(){
-			Find.WindowStack.TryRemove(typeof(Dialog_NodeTree), false);
-		}
-
-		private int CountAvailableLoadingMessages() {
-			for (int i = 0; i < 1000; i++) {
-				if((CustomLoadingMessagePrefix + i).CanTranslate()) continue;
-				return i;
-			}
-			return 0;
-		}
-
-		// gets the most likely map generator def, since we don't know which one was used to generate the current map
-		private MapGeneratorDef TryGetMostLikelyMapGenerator() {
-			var allDefs = DefDatabase<MapGeneratorDef>.AllDefsListForReading;
-			var highestSelectionWeight = -1f;
-			MapGeneratorDef highestWeightDef = null;
-			for (int i = 0; i < allDefs.Count; i++) {
-				var def = allDefs[i];
-				if (def.selectionWeight > highestSelectionWeight) {
-					highestSelectionWeight = def.selectionWeight;
-					highestWeightDef = def;
-				}
-			}
-			return highestWeightDef;
-		}
-
-		private void TryStopStartingPawnVomiting() {
-			if (!settingNoVomiting || capturedInitData == null) return;
-			foreach (var pawn in capturedInitData.startingPawns) {
-				foreach (var hediff in pawn.health.hediffSet.hediffs) {
-					if (hediff.def != HediffDefOf.CryptosleepSickness) continue;
-					pawn.health.RemoveHediff(hediff);
-					break;
-				}
-			}
-		}
-
 		private void PrepareSettingsHandles() {
-			settingPaidRerolls = Settings.GetHandle("paidRerolls", "setting_paidRerolls_label".Translate(), "setting_paidRerolls_desc".Translate(), true);
+			var handles = SettingHandles = new MapRerollSettings();
 			
-			settingLoadingMessages = Settings.GetHandle("loadingMessages", "setting_loadingMessages_label".Translate(), "setting_loadingMessages_desc".Translate(), true);
+			handles.PaidRerolls = Settings.GetHandle("paidRerolls", "setting_paidRerolls_label".Translate(), "setting_paidRerolls_desc".Translate(), true);
 			
-			settingWidgetSize = Settings.GetHandle("widgetSize", "setting_widgetSize_label".Translate(), "setting_widgetSize_desc".Translate(), DefaultWidgetSize, Validators.IntRangeValidator(MinWidgetSize, MaxWidgetSize));
+			handles.LoadingMessages = Settings.GetHandle("loadingMessages", "setting_loadingMessages_label".Translate(), "setting_loadingMessages_desc".Translate(), true);
+
+			handles.WidgetSize = Settings.GetHandle("widgetSize", "setting_widgetSize_label".Translate(), "setting_widgetSize_desc".Translate(), MapRerollUIController.DefaultWidgetSize, Validators.IntRangeValidator(MapRerollUIController.MinWidgetSize, MapRerollUIController.MaxWidgetSize));
+			handles.WidgetSize.SpinnerIncrement = 8;
 			
 			SettingHandle.ShouldDisplay devModeVisible = () => Prefs.DevMode;
-			
-			settingLogConsumedResources = Settings.GetHandle("logConsumption", "setting_logConsumption_label".Translate(), "setting_logConsumption_desc".Translate(), false);
-			settingLogConsumedResources.VisibilityPredicate = devModeVisible;
-			
-			settingNoVomiting = Settings.GetHandle("noVomiting", "setting_noVomiting_label".Translate(), "setting_noVomiting_desc".Translate(), false);
-			settingNoVomiting.VisibilityPredicate = devModeVisible;
-			
-			settingLogConsumedResources.VisibilityPredicate = devModeVisible;
-			settingSecretFound = Settings.GetHandle("secretFound", "", null, false);
-			settingSecretFound.NeverVisible = true;
+
+			handles.LogConsumedResources = Settings.GetHandle("logConsumption", "setting_logConsumption_label".Translate(), "setting_logConsumption_desc".Translate(), false);
+			handles.LogConsumedResources.VisibilityPredicate = devModeVisible;
+
+			handles.NoVomiting = Settings.GetHandle("noVomiting", "setting_noVomiting_label".Translate(), "setting_noVomiting_desc".Translate(), false);
+			handles.NoVomiting.VisibilityPredicate = devModeVisible;
+
+			handles.LogConsumedResources.VisibilityPredicate = devModeVisible;
+			handles.SecretFound = Settings.GetHandle("secretFound", "", null, false);
+			handles.SecretFound.NeverVisible = true;
 		}
 
-		// receive the secret congrats letter if not already received
-		public void TryReceiveSecretLetter(IntVec3 position, Map map) {
-			if (settingSecretFound) return;
-			Find.LetterStack.ReceiveLetter("MapReroll_secretLetter_title".Translate(), "MapReroll_secretLetter_text".Translate(), LetterType.Good, new GlobalTargetInfo(position, map));
-			MapRerollDefOf.RerollSecretFound.PlayOneShotOnCamera();
-			settingSecretFound.Value = true;
-			HugsLibController.SettingsManager.SaveChanges();
+		private MapComponent_MapRerollState TryGetStateComponentFromCurrentMap() {
+			var map = Find.VisibleMap;
+			if (map == null) return null;
+			if (lastReturnedMapComponent != null && lastReturnedMapComponent.map == map) { // cache component for faster access
+				return lastReturnedMapComponent;
+			}
+			lastReturnedMapComponent = GetStateComponentFromMap(map);
+			return lastReturnedMapComponent;
+		}
+
+		private MapComponent_MapRerollState GetStateComponentFromMap(Map map) {
+			if (map == null) throw new NullReferenceException("map is null");
+			var comp = map.GetComponent<MapComponent_MapRerollState>();
+			if (comp == null) throw new NullReferenceException("Map does not have expected MapComponent_MapRerollState");
+			return comp;
+		}
+
+		private void EnsureStateInfoExists() {
+			if (RerollState == null) throw new Exception("Current map has no reroll state information");
+		}
+
+		public class MapRerollSettings {
+			public SettingHandle<bool> PaidRerolls { get; set; }
+			public SettingHandle<bool> LoadingMessages { get; set; }
+			public SettingHandle<int> WidgetSize { get; set; }
+			public SettingHandle<bool> LogConsumedResources { get; set; }
+			public SettingHandle<bool> NoVomiting { get; set; }
+			public SettingHandle<bool> SecretFound { get; set; }
 		}
 	}
 }

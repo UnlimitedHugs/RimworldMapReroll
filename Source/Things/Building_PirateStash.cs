@@ -15,7 +15,7 @@ namespace MapReroll {
 		private static readonly Texture2D InscriptionGizmoTexture = ContentFinder<Texture2D>.Get("UI/Commands/LaunchReport");
 		private static readonly Texture2D OpenGizmoTexture = ContentFinder<Texture2D>.Get("UI/Designators/Open");
 
-		private ThingContainer inventory;
+		private ThingOwner<Thing> inventory;
 		private int nextDropTick;
 		private bool wantOpen;
 		
@@ -27,9 +27,9 @@ namespace MapReroll {
 
 		public override void ExposeData() {
 			base.ExposeData();
-			Scribe_Values.LookValue(ref nextDropTick, "nextDropTick", 0);
-			Scribe_Values.LookValue(ref wantOpen, "wantOpen", false);
-			Scribe_Deep.LookDeep(ref inventory, "inventory", null);
+			Scribe_Values.Look(ref nextDropTick, "nextDropTick", 0);
+			Scribe_Values.Look(ref wantOpen, "wantOpen", false);
+			Scribe_Deep.Look(ref inventory, "inventory", null);
 		}
 
 		public override void PostMake() {
@@ -37,8 +37,8 @@ namespace MapReroll {
 			justCreated = true;
 		}
 
-		public override void SpawnSetup(Map map) {
-			base.SpawnSetup(map);
+		public override void SpawnSetup(Map map, bool respawningAfterLoad) {
+			base.SpawnSetup(map, respawningAfterLoad);
 			if (justCreated) {
 				AssignInventory();
 			}
@@ -60,7 +60,7 @@ namespace MapReroll {
 			foreach (var pos in GenRadial.RadialCellsAround(Position, DropLocationRadius, false)) {
 				if(!pos.InBounds(Map)) continue;
 				var things = Map.thingGrid.ThingsListAtFast(pos);
-				var validSpot = true;
+				var validSpot = pos.Walkable(Map);
 				for (int i = 0; i < things.Count; i++) {
 					var t = things[i];
 					// skip cells with items
@@ -89,13 +89,13 @@ namespace MapReroll {
 			if (inventory.Count == 0) {
 				nextDropTick = 0;
 				inventory = null;
-				MapRerollController.Instance.TryReceiveSecretLetter(Position, Map);
+				MapRerollToolbox.TryReceiveSecretLetter(Position, Map);
 			}
 			
 		}
 
 		public override void Destroy(DestroyMode mode = DestroyMode.Vanish) {
-			if ((mode == DestroyMode.Kill || mode == DestroyMode.Deconstruct) && inventory != null) {
+			if ((mode == DestroyMode.KillFinalize || mode == DestroyMode.Deconstruct) && inventory != null) {
 				inventory.TryDropAll(Position, Map, ThingPlaceMode.Near);
 			}
 			base.Destroy(mode);
@@ -148,7 +148,7 @@ namespace MapReroll {
 		}
 		
 		private void AssignInventory() {
-			inventory = new ThingContainer();
+			inventory = new ThingOwner<Thing>();
 			var props = CustomProps;
 			if(props == null) return;
 			for (int i = 0; i < props.contentsDefs.Count; i++) {
