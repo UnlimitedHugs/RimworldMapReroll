@@ -1,4 +1,5 @@
 ﻿using RimWorld;
+using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 using Verse.Sound;
@@ -40,7 +41,7 @@ namespace MapReroll {
 		public override void PostOpen() {
 			ResetPosition();
 		}
-
+		
 		public override void DoWindowContents(Rect inRect) {
 			var rerollState = MapRerollController.Instance.RerollState;
 			float diceButtonSize = MapRerollController.Instance.SettingHandles.WidgetSize;
@@ -60,13 +61,23 @@ namespace MapReroll {
 			Text.Anchor = TextAnchor.UpperLeft;
 			var mapCostSuffix = "MapReroll_resourceCost_suffix".Translate(MapRerollDefOf.MapRerollSettings.mapRerollCost);
 			var rerollMapLabel = "MapReroll_rerollMapBtn".Translate(paidRerolls ? mapCostSuffix : "");
-			var rerollMapHit = Widgets.ButtonText(new Rect(contentsRect.x, contentsRect.y + 80f, contentsRect.width, 40f), rerollMapLabel);
+			var rerollMapBtnRect = new Rect(contentsRect.x, contentsRect.y + 80f, contentsRect.width, 40f);
+			var rerollMapHit = Widgets.ButtonText(rerollMapBtnRect, rerollMapLabel);
 			var geyserCostSuffix = "MapReroll_resourceCost_suffix".Translate(MapRerollDefOf.MapRerollSettings.geyserRerollCost);
 			var geyserRerollLabel = "MapReroll_rerollGeysersBtn".Translate(paidRerolls ? geyserCostSuffix : "");
 			var rerollGeysersHit = Widgets.ButtonText(new Rect(contentsRect.x, contentsRect.y + 125f, contentsRect.width, 40f), geyserRerollLabel);
+			if (Mouse.IsOver(rerollMapBtnRect)) {
+				var report = MapRerollController.Instance.CanRerollMap();
+				if (!report.Accepted) {
+					TooltipHandler.TipRegion(rerollMapBtnRect, report.Reason);
+				}
+			}
 			if (rerollMapHit && CanAffordOperation(MapRerollController.MapRerollType.Map) && mapRerollTimeout == 0) {
-				MapRerollDefOf.RerollDiceRoll.PlayOneShotOnCamera();
-				mapRerollTimeout = Time.time + diceSoundDuration;
+				var report = MapRerollController.Instance.CanRerollMap();
+				if (report.Accepted) {
+					MapRerollDefOf.RerollDiceRoll.PlayOneShotOnCamera();
+					mapRerollTimeout = Time.time + diceSoundDuration;
+				}
 			}
 			if (rerollGeysersHit && CanAffordOperation(MapRerollController.MapRerollType.Geyser)) {
 				MapRerollDefOf.RerollSteamVent.PlayOneShotOnCamera();
@@ -76,6 +87,10 @@ namespace MapReroll {
 			if (mapRerollTimeout != 0 && Time.time >= mapRerollTimeout) {
 				mapRerollTimeout = 0;
 				MapRerollController.Instance.RerollMap();
+			}
+			// close on world map
+			if (Find.World.renderer.wantedMode != WorldRenderMode.None) {
+				Close(false);
 			}
 		}
 

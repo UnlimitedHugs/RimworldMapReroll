@@ -24,6 +24,12 @@
 	<setting_noVomiting_label>Disable Cryptosleep sickness</setting_noVomiting_label>
 	<setting_noVomiting_desc>Enable this to keep your colonists from vomiting all over your shiny new map.</setting_noVomiting_desc>
 	
+	<MapReroll_rerollLocked>Cannot reroll: {0}</MapReroll_rerollLocked>
+	<MapReroll_rerollLocked_starting>only the starting map can be rerolled.</MapReroll_rerollLocked_starting>
+	<MapReroll_rerollLocked_caravan>a caravan has already left the map.</MapReroll_rerollLocked_caravan>
+	<MapReroll_rerollLocked_balance>cannot afford operation.</MapReroll_rerollLocked_balance>
+	<MapReroll_rerollLocked_colonists>no colonists on map.</MapReroll_rerollLocked_colonists>
+	
 	<!-- optional loading messages, vanilla loading message will be used if none are found -->
 	
 	<MapReroll_loading0>Bribing Fates</MapReroll_loading0>

@@ -59,7 +59,6 @@
     <Compile Include="Source\MapComponent_MapRerollState.cs" />
     <Compile Include="Source\MapRerollState.cs" />
     <Compile Include="Source\MapRerollToolbox.cs" />
-    <Compile Include="Source\Patches\MapGenerator_GenerateMap_Patch.cs" />
     <Compile Include="Source\ReflectionCache.cs" />
     <Compile Include="Source\Things\BuildingProperties_PirateStash.cs" />
     <Compile Include="Source\Things\Building_PirateStash.cs" />
@@ -83,14 +82,16 @@
       <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Source\Patches\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>
     </PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>"RimWorldWin.exe" quicktest</PostBuildEvent>
+    <PostBuildEvent>RimWorldWin.exe</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

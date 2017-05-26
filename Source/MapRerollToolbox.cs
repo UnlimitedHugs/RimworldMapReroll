@@ -205,6 +205,12 @@ namespace MapReroll {
 			Find.WindowStack.TryRemove(typeof(Dialog_NodeTree), false);
 		}
 
+		public static MapGeneratorDef TryGetMostLikelyMapGenerator() {
+			return DefDatabase<MapGeneratorDef>.AllDefs.Aggregate((maxWeightDef, def) => 
+				maxWeightDef == null || def.selectionWeight > maxWeightDef.selectionWeight ? def : maxWeightDef
+			);
+		}
+
 		private static bool RollForPirateStash(Map map, IntVec3 position, int originalMapResourceCount) {
 			var stashDef = MapRerollDefOf.PirateStash.building as BuildingProperties_PirateStash;
 			if (stashDef == null || originalMapResourceCount == 0 || stashDef.commonality == 0 || !LocationIsSuitableForStash(map, position)) return false;

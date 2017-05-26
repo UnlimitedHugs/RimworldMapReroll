@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Harmony;
 using RimWorld;
+using RimWorld.Planet;
 using Verse;
 using Verse.Sound;
 
@@ -16,6 +17,7 @@ namespace MapReroll {
 		public static FieldInfo Scenario_Parts { get; private set; }
 		public static FieldInfo CreateIncident_IsFinished { get; private set; }
 		public static FieldInfo Building_SustainerAmbient { get; private set; }
+		public static FieldInfo MapParent_AnyCaravanEverFormed { get; private set; }
 
 		public static void PrepareReflection() {
 			ScenPartCreateIncidentType = ReflectType("RimWorld.ScenPart_CreateIncident", typeof(ScenPart).Assembly);
@@ -25,6 +27,7 @@ namespace MapReroll {
 			PawnArriveMethod_Method = ReflectField("method", typeof(ScenPart_PlayerPawnsArriveMethod), typeof(PlayerPawnsArriveMethod));
 			Scenario_Parts = ReflectField("parts", typeof(Scenario), typeof(List<ScenPart>));
 			Building_SustainerAmbient = ReflectField("sustainerAmbient", typeof(Building), typeof(Sustainer));
+			MapParent_AnyCaravanEverFormed = ReflectField("anyCaravanEverFormed", typeof(MapParent), typeof(bool));
 			if (ScenPartCreateIncidentType != null) {
 				CreateIncident_IsFinished = ReflectField("isFinished", ScenPartCreateIncidentType, typeof(bool));
 			}

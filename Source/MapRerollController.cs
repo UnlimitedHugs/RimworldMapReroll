@@ -105,17 +105,9 @@ namespace MapReroll {
 			}
 		}
 
-		public void ReportUsedMapGenerator(Map map, MapGeneratorDef mapGenerator) {
-			var state = GetStateComponentFromMap(map).State;
-			if (state == null) {
-				Logger.Error("Cannot store used map generator- reroll state has not been set yet: " + Environment.StackTrace);
-				return;
-			}
-			state.UsedMapGenerator = mapGenerator;
-		}
-
 		public override void MapLoaded(Map map) {
-			if (RerollState == null) return; // mod was added to an existing map 
+			if (RerollState == null) return; // mod was added to an existing map
+			RerollState.UsedMapGenerator = MapRerollToolbox.TryGetMostLikelyMapGenerator(); // temporary fix until the generator capturing patch issue is figured out (inb4 forever solution)
 			var noInitData = !RerollState.HasInitData;
 			var noMapGenerator = RerollState.UsedMapGenerator == null;
 			if (noInitData || noMapGenerator) {
@@ -123,7 +115,7 @@ namespace MapReroll {
 					Logger.Error("MapRerollState found, but state has no map init data: " + RerollState);
 				}
 				if (noMapGenerator) {
-					Logger.Error("Map generator could not be captured: " + RerollState);
+					Logger.Warning("Map generator could not be captured: " + RerollState);
 				}
 				RerollState = null;
 				return;
@@ -153,6 +145,20 @@ namespace MapReroll {
 
 		public override void OnGUI() {
 			uiController.OnGUI();
+		}
+
+		public AcceptanceReport CanRerollMap() {
+			const string lockedStringKey = "MapReroll_rerollLocked";
+			var state = RerollState;
+			if (Find.VisibleMap == null || state == null) 
+				return new AcceptanceReport(lockedStringKey.Translate("MapReroll_rerollLocked_starting".Translate()));
+			if ((bool)ReflectionCache.MapParent_AnyCaravanEverFormed.GetValue(Find.WorldObjects.FactionBaseAt(Find.VisibleMap.Tile))) 
+				return new AcceptanceReport(lockedStringKey.Translate("MapReroll_rerollLocked_caravan".Translate()));
+			if (MapRerollToolbox.GetAllColonistsOnMap(Find.VisibleMap).Count == 0) 
+				return new AcceptanceReport(lockedStringKey.Translate("MapReroll_rerollLocked_colonists".Translate()));
+			if (!CanAffordOperation(MapRerollType.Map)) 
+				return new AcceptanceReport(lockedStringKey.Translate("MapReroll_rerollLocked_balance".Translate()));
+			return true;
 		}
 
 		public bool CanAffordOperation(MapRerollType type) {
@@ -189,6 +195,7 @@ namespace MapReroll {
 			EnsureStateInfoExists();
 			if (RerollInProgress) return;
 			try {
+				if (!CanRerollMap().Accepted) return;
 				var map = Find.VisibleMap;
 				var state = RerollState;
 				stateFromLastMap = state;

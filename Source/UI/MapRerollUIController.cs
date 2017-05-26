@@ -1,4 +1,5 @@
 ﻿using RimWorld;
+using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 
@@ -40,6 +41,7 @@ namespace MapReroll {
 					&& MapRerollDefOf.MapRerollSettings.enableInterface
 					&& Current.Game != null
 					&& Current.Game.VisibleMap != null
+					&& Find.World.renderer.wantedMode == WorldRenderMode.None
 					&& MapRerollController.Instance.RerollState != null
 					&& MapRerollController.Instance.RerollState.HasInitData
 					&& Current.Game.VisibleMap.Tile == MapRerollController.Instance.RerollState.StartingTile
