@@ -3,10 +3,10 @@ using Verse;
 
 namespace MapReroll {
 	/// <summary>
-	/// Wrapper to allow MapRerollState to be stored inside a map
+	/// Wrapper to allow RerollMapState to be stored inside a map
 	/// </summary>
 	public class MapComponent_MapRerollState : MapComponent {
-		public MapRerollState State;
+		public RerollMapState State;
 		
 		public MapComponent_MapRerollState(Map map) : base(map) {
 			this.EnsureIsActive();

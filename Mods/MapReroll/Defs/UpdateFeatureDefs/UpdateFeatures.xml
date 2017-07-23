@@ -13,4 +13,10 @@
 		<content>Map Reroll now comes with in-game settings and the ability to turn off all reroll costs! However, if you do, you will miss out on the shiny new &lt;b&gt;&lt;i&gt;secret feature&lt;/i&gt;&lt;/b&gt;.\nThe settings can be found in Options &gt; Mod Settings.</content>
 	</HugsLib.UpdateFeatureDef>
 	
+	<HugsLib.UpdateFeatureDef ParentName="UpdateFeatureBase">
+		<defName>MapReroll_2_0_0</defName>
+		<assemblyVersion>2.0.0</assemblyVersion>
+		<content>Map Reroll has received a complete overhaul and should prove to be significantly more stable and easier to use.\nMajor new feature: &lt;b&gt;preview generator&lt;/b&gt;: pick your reroll destination from a randomly generated selection of maps. Press the usual "Reroll Map" button to use.\nThe map reroll cost has been lowered significantly, and is now per page of previews generated, rather than per map.</content>
+	</HugsLib.UpdateFeatureDef>
+	
 </Defs>

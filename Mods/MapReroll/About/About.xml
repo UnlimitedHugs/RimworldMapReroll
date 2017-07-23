@@ -4,18 +4,18 @@
 	<author>UnlimitedHugs</author>
 	<targetVersion>0.17.0</targetVersion>
 	<url>https://ludeon.com/forums/index.php?topic=18073.0</url>
-	
-	<description>Version: 1.6.1
+		<description>Version: 1.6.1
 	
 &lt;size=20&gt;Description&lt;/size&gt;
-Allows you to randomize your starting map to help you find one you like. Getting new positions for just the steam geysers is also possible.
+Allows to randomize your starting maps and geyser locations until you find something you like.
+Every reroll has a cost- in the form of unmined resources from your map.
 
 &lt;size=20&gt;How to use&lt;/size&gt;
-Start a new game. In the top right corner of the screen you will find a button with red dice. Click that.
-Use "Reroll Map" to get an entirely new starting map or "Reroll Geysers" to get random new geyser positions on the current map.
-Each operation will cost you an amount of unmined resources from the map- both the cost and the amount of remaining resources are displayed in the window.
+Start a new game, or settle a new map. In the top right corner of the screen you will find a button with red dice. Click that.
+Use "Reroll Map" to pick a new map from a list of previews, or "Reroll Geysers" to get random new geyser positions on the current map.
+Each page of previews and geyser reroll operation will cost you an amount of unmined resources from the map- both the cost and the amount of remaining resources are displayed in the window.
 
-Note, that rerolling becomes unavailable after naming your colony or loading it from a save file.
+The resource cost is optional, and can be disabled in the Options &gt; Mod Settings menu.
 </description>	
 	
 </ModMetaData>

@@ -1,5 +1,22 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <LanguageData>
+
+	<Reroll2_rerollMap>Reroll Map{0}</Reroll2_rerollMap>
+	<Reroll2_rerollGeysers>Reroll Geysers{0}</Reroll2_rerollGeysers>
+	<Reroll2_rerollInProgress>Reroll already in progress.</Reroll2_rerollInProgress>
+	<Reroll2_costSuffix> ({0}%)</Reroll2_costSuffix>
+	
+	<Reroll2_remainingResources>Remaining map resources</Reroll2_remainingResources>
+	
+	<Reroll2_previews_previewsTab>Previews</Reroll2_previews_previewsTab>
+	<Reroll2_previews_favoritesTab>Favorites ({0})</Reroll2_previews_favoritesTab>
+	<Reroll2_previews_nextPage>Next page{0} &gt;</Reroll2_previews_nextPage>
+	<Reroll2_previews_prevPage>&lt; Previous page</Reroll2_previews_prevPage>
+	<Reroll2_previews_generateMap>Generate this map</Reroll2_previews_generateMap>
+	<Reroll2_previews_favoriteCheck>Favorite</Reroll2_previews_favoriteCheck>
+	<Reroll2_previews_zoomOut>Zoom out</Reroll2_previews_zoomOut>
+	<Reroll2_previews_statusGenerating>Generating previews ({0} left) {1}</Reroll2_previews_statusGenerating>
+	<Reroll2_previews_statusComplete>Done: generated {0} previews.</Reroll2_previews_statusComplete>
 	<MapReroll_windowTitle>Map Reroll</MapReroll_windowTitle>
 	<MapReroll_oresLeft>Resources remaining: {0}%</MapReroll_oresLeft>
 	<MapReroll_rerollGeysersBtn>Reroll Geysers{0}</MapReroll_rerollGeysersBtn>
@@ -7,14 +24,12 @@
 	<MapReroll_resourceCost_suffix> ({0}%)</MapReroll_resourceCost_suffix>
 	<MapReroll_freeRerollsLabel>Reroll costs are disabled</MapReroll_freeRerollsLabel>
 	
-	<MapReroll_stash_readInscription>Read inscription</MapReroll_stash_readInscription>
-	<MapReroll_stash_inscription>The inscription reads:\n"&lt;b&gt;Property of Dread Pirate Steve. Hands off, ya wanker!&quot;&lt;/b&gt;</MapReroll_stash_inscription>
-	
-	<MapReroll_secretLetter_title>Secret found!</MapReroll_secretLetter_title>
-	<MapReroll_secretLetter_text>You discovered the secret feature of Map Reroll! Well done!</MapReroll_secretLetter_text>
+	<Reroll2_finishingPreview>Completing preview</Reroll2_finishingPreview>
 	
 	<setting_paidRerolls_label>Rerolls cost resources</setting_paidRerolls_label>
-<setting_paidRerolls_desc>When enabled, rerolling maps and geysers will cost unmined resources from the map.\nFree rerolls disable the &lt;b&gt;&lt;i&gt;secret feature&lt;/i&gt;&lt;/b&gt;.</setting_paidRerolls_desc>
+	<setting_paidRerolls_desc>When enabled, generating map previews and rerolling geysers will cost unmined resources from the map.</setting_paidRerolls_desc>
+	<setting_deterministicRerolls_label>Deterministic map rerolls</setting_deterministicRerolls_label>
+	<setting_deterministicRerolls_desc>When enabled, rerolling a map will always generate the same sequence of maps for the same world seed and world position.</setting_deterministicRerolls_desc>
 	<setting_loadingMessages_label>Custom loading messages</setting_loadingMessages_label>
 	<setting_loadingMessages_desc>Will display custom loading messages on the loading screen while rerolling a map.</setting_loadingMessages_desc>
 	<setting_widgetSize_label>Dice button size</setting_widgetSize_label>
@@ -23,12 +38,12 @@
 	<setting_logConsumption_desc>Writes the amounts of resources consumed by the reroll operations to the console.</setting_logConsumption_desc>
 	<setting_noVomiting_label>Disable Cryptosleep sickness</setting_noVomiting_label>
 	<setting_noVomiting_desc>Enable this to keep your colonists from vomiting all over your shiny new map.</setting_noVomiting_desc>
-	
-	<MapReroll_rerollLocked>Cannot reroll: {0}</MapReroll_rerollLocked>
-	<MapReroll_rerollLocked_starting>only the starting map can be rerolled.</MapReroll_rerollLocked_starting>
-	<MapReroll_rerollLocked_caravan>a caravan has already left the map.</MapReroll_rerollLocked_caravan>
-	<MapReroll_rerollLocked_balance>cannot afford operation.</MapReroll_rerollLocked_balance>
-	<MapReroll_rerollLocked_colonists>no colonists on map.</MapReroll_rerollLocked_colonists>
+	<setting_antiCheese_label>Anti-cheese</setting_antiCheese_label>
+	<setting_antiCheese_desc>When enabled, rerolling a map will destroy all things generated with the old map, except for your colonists.</setting_antiCheese_desc>
+	<setting_mapGeneratorMode_label>Map generator mode</setting_mapGeneratorMode_label>
+	<setting_mapGeneratorMode_desc>When set to "accurate previews", the map generator will produce slightly different maps than the stock game. Setting this to "original map generator" is useful if you're using a vanilla world seed to get a specific map.</setting_mapGeneratorMode_desc>
+	<setting_mapGeneratorMode_AccuratePreviews>Accurate previews</setting_mapGeneratorMode_AccuratePreviews>
+	<setting_mapGeneratorMode_OriginalGenerator>Original map generator</setting_mapGeneratorMode_OriginalGenerator>
 	
 	<!-- optional loading messages, vanilla loading message will be used if none are found -->
 	
