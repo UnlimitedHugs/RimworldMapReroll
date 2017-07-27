@@ -3,7 +3,7 @@ using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 
-namespace MapReroll {
+namespace MapReroll.UI {
 	public class MapRerollUIController {
 		public const int DefaultWidgetSize = 48;
 		public const int MinWidgetSize = 16;
@@ -13,8 +13,8 @@ namespace MapReroll {
 		// rect occupied by the dice button
 		public static Rect GetWidgetRect() {
 			var widgetOffset = GetTutorOffset();
-			var widgetSize = MapRerollController.Instance.SettingHandles.WidgetSize;
-			return new Rect(widgetOffset.x + (UI.screenWidth - WidgetMargin - widgetSize), widgetOffset.y + WidgetMargin, widgetSize, widgetSize);
+			var widgetSize = MapRerollController.Instance.WidgetSizeSetting;
+			return new Rect(widgetOffset.x + (Verse.UI.screenWidth - WidgetMargin - widgetSize), widgetOffset.y + WidgetMargin, widgetSize, widgetSize);
 		}
 
 		private static Vector2 GetTutorOffset() {
@@ -32,38 +32,28 @@ namespace MapReroll {
 			return tutorWindowWidth > 0 ? new Vector2(-(tutorWindowWidth + tutorMargin), 0) : Vector2.zero;
 		}
 
-		private RerollGUIWidget widget;
-
 		private bool ShowInterface {
 			get {
 				return Current.ProgramState == ProgramState.Playing
-					&& !MapRerollController.Instance.RerollInProgress
-					&& MapRerollDefOf.MapRerollSettings.enableInterface
 					&& Current.Game != null
 					&& Current.Game.VisibleMap != null
+					&& Current.Game.VisibleMap.IsPlayerHome
 					&& Find.World.renderer.wantedMode == WorldRenderMode.None
-					&& MapRerollController.Instance.RerollState != null
-					&& MapRerollController.Instance.RerollState.HasInitData
-					&& Current.Game.VisibleMap.Tile == MapRerollController.Instance.RerollState.StartingTile
 					&& !Faction.OfPlayer.HasName;
 			}
 		}
 
 		public void MapLoaded(bool mapWasRerolled) {
-			if (widget == null) {
-				widget = new RerollGUIWidget();
-			}
 			if (mapWasRerolled) {
 				Find.WindowStack.Add(new Dialog_RerollControls());
 			}
 		}
 
 		public void OnGUI() {
-			if (widget != null
-			    && ShowInterface
-			    && Find.TickManager.TicksGame > 0) {
-				
-				widget.OnGUI();
+			if (ShowInterface && Find.TickManager.TicksGame > 0) {
+				if (Widgets.ButtonImage(GetWidgetRect(), Resources.Textures.UIDiceInactive)) {
+					Find.WindowStack.Add(new Dialog_RerollControls());
+				}
 			}
 		}
 	}

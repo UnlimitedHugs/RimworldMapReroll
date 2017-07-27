@@ -1,14 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <DefPackage-SoundDef>
-	
+
 	<SoundDef>
-		<defName>RerollSteamVent</defName>	
+		<defName>RerollSteamVent</defName>
+		<context>MapOnly</context>
 		<eventNames />	
-		<maxVoices>1</maxVoices>   
-		<maxSimultaneous>3</maxSimultaneous>  
+		<maxVoices>4</maxVoices>   
+		<maxSimultaneous>4</maxSimultaneous>  
 		<subSounds>
 			<li>
-				<onCamera>True</onCamera>  
 				<grains>
 					<li Class="AudioGrain_Clip">
 						<clipPath>steam_vent</clipPath>
@@ -22,10 +22,14 @@
 					<min>0.9</min>		
 					<max>1.1</max>
 				</pitchRange>
+				<distRange>
+					<min>150</min>
+					<max>350</max>
+				</distRange>
 			</li>	  
 		</subSounds>
 	</SoundDef>
-	
+
 	<SoundDef>
 		<defName>RerollDiceRoll</defName>  
 		<eventNames />	
@@ -50,25 +54,5 @@
 			</li>	  
 		</subSounds>
 	</SoundDef>
-	
-	<SoundDef>
-		<defName>RerollSecretFound</defName>  
-		<eventNames />	
-		<maxVoices>1</maxVoices>   
-		<maxSimultaneous>1</maxSimultaneous>  
-		<subSounds>
-			<li>
-				<onCamera>True</onCamera>  
-				<grains>
-					<li Class="AudioGrain_Clip">
-						<clipPath>secret_found</clipPath>
-					</li>
-				</grains>	  
-				<volumeRange>
-					<min>120</min>
-					<max>120</max>
-				</volumeRange>
-			</li>	  
-		</subSounds>
-	</SoundDef>
+
 </DefPackage-SoundDef>
