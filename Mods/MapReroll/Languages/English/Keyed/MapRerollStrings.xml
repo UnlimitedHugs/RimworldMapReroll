@@ -6,7 +6,7 @@
 	<Reroll2_rerollInProgress>Reroll already in progress.</Reroll2_rerollInProgress>
 	<Reroll2_costSuffix> ({0}%)</Reroll2_costSuffix>
 	
-	<Reroll2_remainingResources>Remaining map resources</Reroll2_remainingResources>
+	<Reroll2_remainingResources>Remaining map resources: {0:F1}%</Reroll2_remainingResources>
 	
 	<Reroll2_previews_previewsTab>Previews</Reroll2_previews_previewsTab>
 	<Reroll2_previews_favoritesTab>Favorites ({0})</Reroll2_previews_favoritesTab>
@@ -17,14 +17,15 @@
 	<Reroll2_previews_zoomOut>Zoom out</Reroll2_previews_zoomOut>
 	<Reroll2_previews_statusGenerating>Generating previews ({0} left) {1}</Reroll2_previews_statusGenerating>
 	<Reroll2_previews_statusComplete>Done: generated {0} previews.</Reroll2_previews_statusComplete>
+	
+	<Reroll2_finishingPreview>Completing preview</Reroll2_finishingPreview>
+	
 	<MapReroll_windowTitle>Map Reroll</MapReroll_windowTitle>
 	<MapReroll_oresLeft>Resources remaining: {0}%</MapReroll_oresLeft>
 	<MapReroll_rerollGeysersBtn>Reroll Geysers{0}</MapReroll_rerollGeysersBtn>
 	<MapReroll_rerollMapBtn>Reroll Map{0}</MapReroll_rerollMapBtn>
 	<MapReroll_resourceCost_suffix> ({0}%)</MapReroll_resourceCost_suffix>
 	<MapReroll_freeRerollsLabel>Reroll costs are disabled</MapReroll_freeRerollsLabel>
-	
-	<Reroll2_finishingPreview>Completing preview</Reroll2_finishingPreview>
 	
 	<setting_paidRerolls_label>Rerolls cost resources</setting_paidRerolls_label>
 	<setting_paidRerolls_desc>When enabled, generating map previews and rerolling geysers will cost unmined resources from the map.</setting_paidRerolls_desc>

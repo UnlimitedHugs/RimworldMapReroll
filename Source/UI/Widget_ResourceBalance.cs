@@ -18,11 +18,11 @@ namespace MapReroll.UI {
 			interpolator = new ValueInterpolator(startValue);
 		}
 		
-		public void DrawLayout() {
+		public void DrawLayout(float height) {
 			var map = Find.VisibleMap;
 			if (map == null) return;
 			UpdateInterpolator(map);
-			GUILayout.Box(string.Empty, Widgets.EmptyStyle, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+			GUILayout.Box(string.Empty, Widgets.EmptyStyle, GUILayout.ExpandWidth(true), GUILayout.Height(height));
 			var controlRect = GUILayoutUtility.GetLastRect();
 			var contentsRect = controlRect.ContractedBy(ControlPadding);
 
@@ -30,18 +30,23 @@ namespace MapReroll.UI {
 			GUI.color = outlineColor;
 			Widgets.DrawBox(controlRect);
 			GUI.color = prevColor;
-
-			var labelText = "Reroll2_remainingResources".Translate();
-			var labelHeight = Text.CalcHeight(labelText, contentsRect.width);
-			var labelRect = new Rect(contentsRect.x, contentsRect.y, contentsRect.width, labelHeight);
-			Widgets.Label(labelRect, labelText);
-			var barYOffset = contentsRect.y + labelRect.yMax;
-			var barRect = new Rect(contentsRect.x, barYOffset, contentsRect.width, contentsRect.height - barYOffset + ControlPadding);
-			float fillPercent = Mathf.Clamp(interpolator.value, 0, MapRerollController.MaxResourceBalance);
-			Widgets.FillableBar(barRect, fillPercent/MapRerollController.MaxResourceBalance, Resources.Textures.ResourceBarFull, Resources.Textures.ResourceBarEmpty, false);
+			
 			Text.Anchor = TextAnchor.MiddleCenter;
-			Widgets.Label(barRect, string.Format("{0:F1}%", interpolator.value));
+			if (MapRerollController.Instance.PaidRerollsSetting) {
+				float fillPercent = Mathf.Clamp(interpolator.value, 0, MapRerollController.MaxResourceBalance);
+				DrawTiledTexture(contentsRect, Resources.Textures.UISteelBack);
+				var barRect = new Rect(contentsRect.x, contentsRect.y, contentsRect.width * (fillPercent / 100f), contentsRect.height);
+				DrawTiledTexture(barRect, Resources.Textures.UISteelFront);
+				Widgets.Label(contentsRect, "Reroll2_remainingResources".Translate(interpolator.value));
+			} else {
+				GUI.DrawTexture(contentsRect, Resources.Textures.ResourceBarFull);
+				Widgets.Label(contentsRect, "MapReroll_freeRerollsLabel".Translate());
+			}
 			Text.Anchor = TextAnchor.UpperLeft;
+		}
+
+		private void DrawTiledTexture(Rect rect, Texture2D tex) {
+			GUI.DrawTextureWithTexCoords(rect, tex, new Rect(0, 0, rect.width / tex.width, rect.height / tex.height));
 		}
 
 		private float GetResourceBalance(Map map) {
