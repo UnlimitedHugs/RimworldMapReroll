@@ -42,13 +42,12 @@ namespace MapReroll.UI {
 
 		private bool ShowInterface {
 			get {
-				var visibleMap = Current.Game.VisibleMap;
-				return Current.ProgramState == ProgramState.Playing
-					&& Current.Game != null
-					&& visibleMap != null
-					&& visibleMap.IsPlayerHome
-					&& Find.World.renderer.wantedMode == WorldRenderMode.None
-					&& !MapWasCommitted(visibleMap);
+				if (Current.ProgramState != ProgramState.Playing || Current.Game == null) return false;
+				var visibleMap = Current.Game.VisibleMap;	
+				return visibleMap != null
+						&& visibleMap.IsPlayerHome
+						&& Find.World.renderer.wantedMode == WorldRenderMode.None
+						&& !MapWasCommitted(visibleMap);
 			}
 		}
 

@@ -42,7 +42,7 @@ namespace MapReroll.UI {
 			SetUpTabs();
 			mapState = RerollToolbox.GetStateForMap();
 			favoritesProvider = new ListPreviewPageProvider();
-			previewGenerator = new GeneratedPreviewPageProvider(Find.VisibleMap);
+			previewGenerator = new GeneratedPreviewPageProvider(Find.VisibleMap, Find.World);
 			previewGenerator.OpenPage(0);
 			previewGenerator.OnFavoriteToggled = OnPreviewFavoriteToggled;
 		}

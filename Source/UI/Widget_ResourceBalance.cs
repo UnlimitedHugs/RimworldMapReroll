@@ -19,34 +19,6 @@ namespace MapReroll.UI {
 		}
 		
 		public void DrawLayout(float height) {
-/*
-			var map = Find.VisibleMap;
-			if (map == null) return;
-			UpdateInterpolator(map);
-			GUILayout.Box(string.Empty, Widgets.EmptyStyle, GUILayout.ExpandWidth(true), GUILayout.Height(height));
-			var controlRect = GUILayoutUtility.GetLastRect();
-			var contentsRect = controlRect.ContractedBy(ControlPadding);
-
-			var prevColor = GUI.color;
-			GUI.color = outlineColor;
-			Widgets.DrawBox(controlRect);
-			GUI.color = prevColor;
-			
-			Text.Anchor = TextAnchor.MiddleCenter;
-			if (MapRerollController.Instance.PaidRerollsSetting) {
-				float fillPercent = Mathf.Clamp(interpolator.value, 0, MapRerollController.MaxResourceBalance);
-				DrawTiledTexture(contentsRect, Resources.Textures.UISteelBack);
-				var barRect = new Rect(contentsRect.x, contentsRect.y, contentsRect.width * (fillPercent / 100f), contentsRect.height);
-				DrawTiledTexture(barRect, Resources.Textures.UISteelFront);
-				Widgets.Label(contentsRect, "Reroll2_remainingResources".Translate(interpolator.value));
-			} else {
-				GUI.DrawTexture(contentsRect, Resources.Textures.ResourceBarFull);
-				Widgets.Label(contentsRect, "MapReroll_freeRerollsLabel".Translate());
-			}
-			Text.Anchor = TextAnchor.UpperLeft;
-*/
-
-
 			var map = Find.VisibleMap;
 			if (map == null) return;
 			UpdateInterpolator(map);

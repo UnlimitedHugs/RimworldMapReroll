@@ -47,6 +47,9 @@
 	<setting_mapGeneratorMode_desc>When set to "accurate previews", the map generator will produce slightly different maps than the stock game. Setting this to "original map generator" is useful if you're using a vanilla world seed to get a specific map.</setting_mapGeneratorMode_desc>
 	<setting_mapGeneratorMode_AccuratePreviews>Accurate previews</setting_mapGeneratorMode_AccuratePreviews>
 	<setting_mapGeneratorMode_OriginalGenerator>Original map generator</setting_mapGeneratorMode_OriginalGenerator>
+	<setting_changeMapSize_label>Change default map size</setting_changeMapSize_label>
+	<setting_changeMapSize_desc>This will change the size of the maps generated whenever you reroll a map or settle on a new world tile.</setting_changeMapSize_desc>
+	<setting_changeMapSize_noWorld>A game must be loaded</setting_changeMapSize_noWorld>
 	
 	<!-- optional loading messages, vanilla loading message will be used if none are found -->
 	

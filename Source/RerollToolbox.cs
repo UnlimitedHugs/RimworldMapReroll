@@ -236,6 +236,19 @@ namespace MapReroll {
 			}
 		}
 
+		public static List<KeyValuePair<int, string>> GetAvailableMapSizes() {
+			return new List<KeyValuePair<int, string>> {
+				new KeyValuePair<int, string>(200, "MapSizeSmall".Translate()),
+				new KeyValuePair<int, string>(225, null),
+				new KeyValuePair<int, string>(250, "MapSizeMedium".Translate()),
+				new KeyValuePair<int, string>(275, null),
+				new KeyValuePair<int, string>(300, "MapSizeLarge".Translate()),
+				new KeyValuePair<int, string>(325, null),
+				new KeyValuePair<int, string>(350, "MapSizeExtreme".Translate()),
+				new KeyValuePair<int, string>(400, null),
+			};
+		}
+
 		/// <summary>
 		/// destroying a resource outright causes too much overhead: fog, area reveal, pathing, roof updates, etc
 		///	we just want to replace it. So, we manually strip it out of the map and do some cleanup.

@@ -51,7 +51,7 @@ namespace MapReroll.UI {
 			// close on world map, on committed maps
 			var mapState = RerollToolbox.GetStateForMap();
 			if (Find.World.renderer.wantedMode != WorldRenderMode.None || Find.VisibleMap == null || mapState.MapCommitted) {
-				Close(false);
+				Close();
 				return;
 			}
 			float diceButtonSize = MapRerollController.Instance.WidgetSizeSetting;
