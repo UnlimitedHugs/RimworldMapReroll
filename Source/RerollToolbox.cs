@@ -123,7 +123,7 @@ namespace MapReroll {
 
 		public static void ReduceMapResources(Map map, float consumePercent, float resourcesPercentBalance) {
 			if (resourcesPercentBalance == 0) return;
-			var rockDef = Find.World.NaturalRockTypesIn(map.Tile).FirstOrDefault();
+			var rockTypes = Find.World.NaturalRockTypesIn(map.Tile).ToList();
 			var mapResources = GetAllResourcesOnMap(map);
 
 			var newResourceAmount = Mathf.Clamp(resourcesPercentBalance - consumePercent, 0, 100);
@@ -134,17 +134,15 @@ namespace MapReroll {
 			var toll = resourceToll;
 			if (mapResources.Count > 0) {
 				// eat random resources
-				while (mapResources.Count > 0 && toll > 0) {
-					var resIndex = UnityEngine.Random.Range(0, mapResources.Count);
-					var resThing = mapResources[resIndex];
+				for (int i = 0; i < mapResources.Count && toll > 0; i++) {
+					var resThing = mapResources[i];
 
 					SneakilyDestroyResource(resThing);
-					mapResources.RemoveAt(resIndex);
-					if (rockDef != null) {
-						// put some rock in their place
-						var rock = ThingMaker.MakeThing(rockDef);
-						GenPlace.TryPlaceThing(rock, resThing.Position, map, ThingPlaceMode.Direct);
-					}
+
+					// put some rock in their place
+					var rockDef = FindAdjacentRockDef(map, resThing.Position, rockTypes);
+					var rock = ThingMaker.MakeThing(rockDef);
+					GenPlace.TryPlaceThing(rock, resThing.Position, map, ThingPlaceMode.Direct);
 					toll--;
 				}
 			}
@@ -156,27 +154,12 @@ namespace MapReroll {
 
 		}
 
-		public static List<Thing> GetAllResourcesOnMap(Map map) {
-			return map.listerThings.AllThings.Where(t => t.def != null && t.def.building != null && t.def.building.mineableScatterCommonality > 0).ToList();
-		}
-
-		public static void TryStopPawnVomiting(Map map) {
-			if (!MapRerollController.Instance.NoVomitingSetting) return;
-			foreach (var pawn in GetAllPlayerPawnsOnMap(map)) {
-				foreach (var hediff in pawn.health.hediffSet.hediffs) {
-					if (hediff.def != HediffDefOf.CryptosleepSickness) continue;
-					pawn.health.RemoveHediff(hediff);
-					break;
-				}
-			}
-		}
-
 		public static void SubtractResourcePercentage(Map map, float percent) {
 			var rerollState = GetStateForMap(map);
 			ReduceMapResources(map, percent, rerollState.ResourceBalance);
 			rerollState.ResourceBalance = Mathf.Clamp(rerollState.ResourceBalance - percent, 0f, 100f);
 		}
-		
+
 		public static void ResetIncidentScenarioParts(Scenario scenario) {
 			foreach (var part in scenario.AllParts) {
 				if (part != null && part.GetType() == ReflectionCache.ScenPartCreateIncidentType) {
@@ -212,6 +195,45 @@ namespace MapReroll {
 				}
 			}
 			return 0;
+		}
+
+		private static List<Thing> GetAllResourcesOnMap(Map map) {
+			return map.listerThings.AllThings.Where(t => t.def != null && t.def.building != null && t.def.building.mineableScatterCommonality > 0)
+				.OrderBy(HasAdjacentNaturalRockComparator).ToList();
+		}
+
+		private static int HasAdjacentNaturalRockComparator(Thing t) {
+			// randomize element order as we check for adjacent rocks
+			for (int i = 0; i < GenAdj.CardinalDirectionsAround.Length; i++) {
+				var adjacentPos = t.Position + GenAdj.CardinalDirectionsAround[i];
+				var adjacentThing = t.Map.edificeGrid[adjacentPos];
+				if (adjacentThing != null && adjacentThing.def != null && adjacentThing.def.building != null && adjacentThing.def.building.isNaturalRock && !adjacentThing.def.building.isResourceRock) {
+					return Rand.Range(0, int.MaxValue / 2);
+				}
+			}
+			return Rand.Range(int.MaxValue / 2, int.MaxValue);
+		}
+
+		private static ThingDef FindAdjacentRockDef(Map map, IntVec3 pos, List<ThingDef> viableRockTypes) {
+			for (int i = 0; i < GenAdj.CardinalDirectionsAround.Length; i++) {
+				var adjacent = pos + GenAdj.CardinalDirectionsAround[i];
+				var adjacentThing = map.edificeGrid[adjacent];
+				if (adjacentThing != null && adjacentThing.def != null && adjacentThing.def.building != null && adjacentThing.def.building.isNaturalRock && viableRockTypes.Contains(adjacentThing.def)) {
+					return adjacentThing.def;
+				}
+			}
+			return viableRockTypes[0];
+		}
+
+		public static void TryStopPawnVomiting(Map map) {
+			if (!MapRerollController.Instance.NoVomitingSetting) return;
+			foreach (var pawn in GetAllPlayerPawnsOnMap(map)) {
+				foreach (var hediff in pawn.health.hediffSet.hediffs) {
+					if (hediff.def != HediffDefOf.CryptosleepSickness) continue;
+					pawn.health.RemoveHediff(hediff);
+					break;
+				}
+			}
 		}
 
 		/// <summary>
