@@ -76,8 +76,8 @@ namespace MapReroll.UI {
 				var texRect = inRect.ScaledBy(texScale).ContractedBy(1f);
 				GUI.DrawTexture(texRect, previewTex);
 				var favSize = Resources.Textures.UIFavoriteStarOn.width;
-				var favBtnRect = new Rect(inRect.xMax - favSize - 3, inRect.yMin + 3, favSize, favSize);
-				GUI.DrawTexture(favBtnRect, IsFavorite ? Resources.Textures.UIFavoriteStarOn : Resources.Textures.UIFavoriteStarOff);
+				var favBtnRect = new Rect(inRect.xMax - favSize - 3, inRect.yMin + 3, favSize, favSize).ScaledBy(Dialog_MapPreviews.FavoriteIconScale);
+				GUI.DrawTextureWithTexCoords(favBtnRect, IsFavorite ? Resources.Textures.UIFavoriteStarOn : Resources.Textures.UIFavoriteStarOff, new Rect(0, 0, Dialog_MapPreviews.FavoriteIconScale, Dialog_MapPreviews.FavoriteIconScale));
 				if (interactive) {
 					if (Mouse.IsOver(inRect)) {
 						if (Mouse.IsOver(favBtnRect)) {

@@ -27,7 +27,7 @@ namespace MapReroll.UI {
 
 		public override Vector2 InitialSize {
 			get {
-				return new Vector2(350f, 260f);
+				return new Vector2(320f, 360f);
 			}
 		}
 
@@ -48,6 +48,12 @@ namespace MapReroll.UI {
 		}
 		
 		public override void DoWindowContents(Rect inRect) {
+			// close on world map, on committed maps
+			var mapState = RerollToolbox.GetStateForMap();
+			if (Find.World.renderer.wantedMode != WorldRenderMode.None || Find.VisibleMap == null || mapState.MapCommitted) {
+				Close(false);
+				return;
+			}
 			float diceButtonSize = MapRerollController.Instance.WidgetSizeSetting;
 			var buttonRect = new Rect((inRect.width - diceButtonSize) + Margin, -Margin, diceButtonSize, diceButtonSize);
 			if (Widgets.ButtonImage(buttonRect, Resources.Textures.UIDiceActive)) {
@@ -59,68 +65,42 @@ namespace MapReroll.UI {
 			var headerRect = new Rect(contentsRect.x, contentsRect.y, contentsRect.width, 30f);
 			Widgets.Label(headerRect, "MapReroll_windowTitle".Translate());
 			Text.Font = GameFont.Small;
+			Text.Anchor = TextAnchor.UpperLeft;
 			
 			var layoutRect = new Rect(contentsRect.x, contentsRect.y + headerRect.yMax, contentsRect.width, contentsRect.height - headerRect.yMax);
 			GUILayout.BeginArea(layoutRect);
 			GUILayout.BeginVertical();
-			var controlHeight = (layoutRect.height - ControlSpacing * 2f) / 3f;
-			balanceWidget.DrawLayout(controlHeight);
+			var extraResourcesHeight = 0f;
+			var separatorHeight = ContentsPadding+1;
+			var controlHeight = (layoutRect.height - (ControlSpacing * 2f + separatorHeight + extraResourcesHeight)) / 4f;
+			
+			balanceWidget.DrawLayout(controlHeight + extraResourcesHeight);
+
 			GUILayout.Space(ControlSpacing);
-			DoRerollTabButton(Resources.Textures.UIRerollMap, MapRerollUtility.WithCostSuffix("Reroll2_rerollMap", PaidOperationType.GeneratePreviews), null, controlHeight, () => {
+			DoRerollTabButton(Resources.Textures.UIRerollMapOn, Resources.Textures.UIRerollMapOff, MapRerollUtility.WithCostSuffix("Reroll2_rerollMap", PaidOperationType.GeneratePreviews), null, controlHeight, () => {
 				if (RerollToolbox.GetOperationCost(PaidOperationType.GeneratePreviews) > 0) {
 					RerollToolbox.ChargeForOperation(PaidOperationType.GeneratePreviews);
 				}
 				Find.WindowStack.Add(new Dialog_MapPreviews());
 			});
+
 			GUILayout.Space(ControlSpacing);
-			DoRerollTabButton(Resources.Textures.UIRerollGeysers, MapRerollUtility.WithCostSuffix("Reroll2_rerollGeysers", PaidOperationType.RerollGeysers), null, controlHeight, () => {
+			DoRerollTabButton(Resources.Textures.UIRerollGeysersOn, Resources.Textures.UIRerollGeysersOff, MapRerollUtility.WithCostSuffix("Reroll2_rerollGeysers", PaidOperationType.RerollGeysers), null, controlHeight, () => {
 				if (!MapRerollController.Instance.GeyserRerollInProgress) {
 					MapRerollController.Instance.RerollGeysers();
 				} else {
 					Messages.Message("Reroll2_rerollInProgress".Translate(), MessageSound.RejectInput);
 				}
+			});
+
+			DrawSeparator(separatorHeight);
+
+			DoRerollTabButton(Resources.Textures.UICommitMapOn, Resources.Textures.UICommitMapOff, MapRerollUtility.WithCostSuffix("Reroll2_commitMap", PaidOperationType.RerollGeysers), "Reroll2_commitMap_tip".Translate(), controlHeight, () => {
+				RerollToolbox.GetStateForMap().MapCommitted = true;
+				MapRerollController.Instance.UIController.ResetCache();
 			});
 			GUILayout.EndVertical();
 			GUILayout.EndArea();
-			
-			/*var rerollState = RerollToolbox.GetStateForMap();
-			float diceButtonSize = MapRerollController.Instance.WidgetSizeSetting;
-			var buttonRect = new Rect((inRect.width - diceButtonSize) + Margin, -Margin, diceButtonSize, diceButtonSize);
-			if (Widgets.ButtonImage(buttonRect, Resources.Textures.UIDiceActive)) {
-				Close();
-			}
-			var contentsRect = new Rect(inRect.x + ContentsPadding, inRect.y + ContentsPadding, inRect.width - ContentsPadding*2, inRect.height - ContentsPadding*2);
-			Text.Anchor = TextAnchor.MiddleCenter;
-			Text.Font = GameFont.Medium;
-			Widgets.Label(new Rect(contentsRect.x, contentsRect.y, contentsRect.width, 30f), "MapReroll_windowTitle".Translate());
-			Text.Font = GameFont.Small;
-			var paidRerolls = MapRerollController.Instance.PaidRerollsSetting;
-
-			var resourcesLabelText = paidRerolls ? "MapReroll_oresLeft".Translate(rerollState == null ? 0 : rerollState.ResourceBalance) : "MapReroll_freeRerollsLabel".Translate();
-			Widgets.Label(new Rect(contentsRect.x, contentsRect.y + 40f, contentsRect.width, 25f), resourcesLabelText);
-			Text.Anchor = TextAnchor.UpperLeft;
-			var mapCostSuffix = "MapReroll_resourceCost_suffix".Translate(RerollToolbox.GetOperationCost(PaidOperationType.GeneratePreviews));
-			var rerollMapLabel = "MapReroll_rerollMapBtn".Translate(paidRerolls ? mapCostSuffix : "");
-			var rerollMapBtnRect = new Rect(contentsRect.x, contentsRect.y + 80f, contentsRect.width, 40f);
-			if (Widgets.ButtonText(rerollMapBtnRect, rerollMapLabel)) {
-				if (RerollToolbox.GetOperationCost(PaidOperationType.GeneratePreviews) > 0) {
-					RerollToolbox.ChargeForOperation(PaidOperationType.GeneratePreviews);
-				}
-				Find.WindowStack.Add(new Dialog_MapPreviews());
-			}
-			var geyserCostSuffix = "MapReroll_resourceCost_suffix".Translate(RerollToolbox.GetOperationCost(PaidOperationType.RerollGeysers));
-			var geyserRerollLabel = "MapReroll_rerollGeysersBtn".Translate(paidRerolls ? geyserCostSuffix : "");
-			if(Widgets.ButtonText(new Rect(contentsRect.x, contentsRect.y + 125f, contentsRect.width, 40f), geyserRerollLabel)){
-				if (!MapRerollController.Instance.GeyserRerollInProgress) {
-					MapRerollController.Instance.RerollGeysers();
-				} else {
-					Messages.Message("Reroll2_rerollInProgress".Translate(), MessageSound.RejectInput);
-				}
-			}*/
-			// close on world map
-			if (Find.World.renderer.wantedMode != WorldRenderMode.None) {
-				Close(false);
-			}
 		}
 
 		// ensure the window is always in the right position over the dice button
@@ -133,7 +113,16 @@ namespace MapReroll.UI {
 			windowRect = new Rect(widgetRect.x + widgetRect.width - InitialSize.x, widgetRect.y, InitialSize.x, InitialSize.y);
 		}
 
-		private void DoRerollTabButton(Texture2D icon, string label, string tooltip, float controlHeight, Action callback) {
+		private void DrawSeparator(float height) {
+			var prevColor = GUI.color;
+			GUI.color = buttonOutlineColorNormal;
+			GUILayout.Box(new GUIContent(), Widgets.EmptyStyle, GUILayout.Height(height));
+			var lineRect = GUILayoutUtility.GetLastRect().ContractedBy(ControlSpacing);
+			Widgets.DrawLineHorizontal(lineRect.x, lineRect.center.y-1, lineRect.width);
+			GUI.color = prevColor;
+		}
+
+		private void DoRerollTabButton(Texture2D iconOn, Texture2D iconOff, string label, string tooltip, float controlHeight, Action callback) {
 			var prevColor = GUI.color;
 			if (GUILayout.Button(string.Empty, Widgets.EmptyStyle, GUILayout.ExpandWidth(true), GUILayout.Height(controlHeight))) {
 				callback();
@@ -145,11 +134,8 @@ namespace MapReroll.UI {
 			GUI.color = hovering ? buttonOutlineColorHover : buttonOutlineColorNormal;
 			Widgets.DrawBox(controlRect);
 			GUI.color = prevColor;
-			if (icon == null) {
-				icon = BaseContent.BadTex;
-			}
-
-			var iconScale = .75f;
+			var icon = (hovering ? iconOn : iconOff) ?? BaseContent.BadTex;
+			const float iconScale = .75f;
 			var iconSize = new Vector2(64f, 64f) * iconScale;
 			var iconRect = new Rect(contentsRect.x, contentsRect.y + contentsRect.height / 2f - iconSize.y / 2f, iconSize.x, iconSize.y);
 			Widgets.DrawTextureFitted(iconRect, icon, 1f);

@@ -35,6 +35,10 @@ namespace MapReroll {
 			get { return _worldState ?? (_worldState = UtilityWorldObjectManager.GetUtilityWorldObject<RerollWorldState>()); }
 		}
 
+		public MapRerollUIController UIController {
+			get { return uiController; }
+		}
+
 		public SettingHandle<bool> PaidRerollsSetting { get; private set; }
 		public SettingHandle<bool> DeterministicRerollsSetting { get; private set; }
 		public SettingHandle<bool> AntiCheeseSetting { get; private set; }

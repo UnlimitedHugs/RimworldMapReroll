@@ -7,11 +7,12 @@ using Verse.Sound;
 
 namespace MapReroll.UI {
 	public class Dialog_MapPreviews : Window {
+		public const float FavoriteIconScale = .75f;
 		private const float ElementSpacing = 10f;
 
 		private static readonly Vector2 PageButtonSize = new Vector2(160f, 40f);
 		private static readonly Vector2 GenerateButtonSize = new Vector2(160f, 40f);
-		private static readonly Vector2 FavoriteControlSize = new Vector2(160f, Resources.Textures.UIFavoriteStarOn.width);
+		private static readonly Vector2 FavoriteControlSize = new Vector2(160f, Resources.Textures.UIFavoriteStarOn.width * FavoriteIconScale);
 		private static readonly Color GenerateButtonColor = new Color(.55f, 1f, .55f);
 
 		private readonly GeneratedPreviewPageProvider previewGenerator;
@@ -129,7 +130,7 @@ namespace MapReroll.UI {
 				if (Widgets.ButtonInvisible(favoritesControlRect)) {
 					OnPreviewFavoriteToggled(currentZoomedPreview);
 				}
-				GUI.DrawTexture(favoriteCheckRect, currentZoomedPreview.IsFavorite ? Resources.Textures.UIFavoriteStarOn : Resources.Textures.UIFavoriteStarOff);
+				GUI.DrawTextureWithTexCoords(favoriteCheckRect, currentZoomedPreview.IsFavorite ? Resources.Textures.UIFavoriteStarOn : Resources.Textures.UIFavoriteStarOff, new Rect(0, 0, FavoriteIconScale, FavoriteIconScale));
 				if (Mouse.IsOver(favoritesControlRect)) {
 					Widgets.DrawHighlight(favoritesControlRect);
 				}

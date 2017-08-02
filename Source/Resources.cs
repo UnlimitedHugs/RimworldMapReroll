@@ -27,8 +27,10 @@ namespace MapReroll {
 		[StaticConstructorOnStartup]
 		public static class Textures {
 			public static readonly Texture2D ResourceBarFull = SolidColorMaterials.NewSolidColorTexture(new Color(0.2f, 0.2f, 0.24f));
-			public static Texture2D UIRerollMap;
-			public static Texture2D UIRerollGeysers;
+			public static Texture2D UIRerollMapOn;
+			public static Texture2D UIRerollMapOff;
+			public static Texture2D UIRerollGeysersOn;
+			public static Texture2D UIRerollGeysersOff;
 			public static Texture2D UIPreviewLoading;
 			public static Texture2D UIDiceActive;
 			public static Texture2D UIDiceInactive;
@@ -36,6 +38,8 @@ namespace MapReroll {
 			public static Texture2D UISteelBack;
 			public static Texture2D UIFavoriteStarOn;
 			public static Texture2D UIFavoriteStarOff;
+			public static Texture2D UICommitMapOn;
+			public static Texture2D UICommitMapOff;
 
 			static Textures() {
 				foreach (var fieldInfo in typeof(Textures).GetFields(HugsLibUtility.AllBindingFlags)) {

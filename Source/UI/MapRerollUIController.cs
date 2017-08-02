@@ -10,6 +10,9 @@ namespace MapReroll.UI {
 		public const int MaxWidgetSize = 64;
 		private const float WidgetMargin = 10f;
 
+		private Map lastSeenMap;
+		private bool lastSeenMapCommitted;
+
 		// rect occupied by the dice button
 		public static Rect GetWidgetRect() {
 			var widgetOffset = GetTutorOffset();
@@ -32,15 +35,29 @@ namespace MapReroll.UI {
 			return tutorWindowWidth > 0 ? new Vector2(-(tutorWindowWidth + tutorMargin), 0) : Vector2.zero;
 		}
 
+		public void ResetCache() {
+			lastSeenMap = null;
+			lastSeenMapCommitted = false;
+		}
+
 		private bool ShowInterface {
 			get {
+				var visibleMap = Current.Game.VisibleMap;
 				return Current.ProgramState == ProgramState.Playing
 					&& Current.Game != null
-					&& Current.Game.VisibleMap != null
-					&& Current.Game.VisibleMap.IsPlayerHome
+					&& visibleMap != null
+					&& visibleMap.IsPlayerHome
 					&& Find.World.renderer.wantedMode == WorldRenderMode.None
-					&& !Faction.OfPlayer.HasName;
+					&& !MapWasCommitted(visibleMap);
 			}
+		}
+
+		private bool MapWasCommitted(Map map) {
+			if (map != lastSeenMap) {
+				lastSeenMap = map;
+				lastSeenMapCommitted = RerollToolbox.GetStateForMap().MapCommitted;
+			}
+			return lastSeenMapCommitted;
 		}
 
 		public void MapLoaded(bool mapWasRerolled) {

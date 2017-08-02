@@ -3,6 +3,8 @@
 
 	<Reroll2_rerollMap>Reroll Map{0}</Reroll2_rerollMap>
 	<Reroll2_rerollGeysers>Reroll Geysers{0}</Reroll2_rerollGeysers>
+	<Reroll2_commitMap>Keep this map</Reroll2_commitMap>
+	<Reroll2_commitMap_tip>Confirm this map, and hide the reroll controls.</Reroll2_commitMap_tip>
 	<Reroll2_rerollInProgress>Reroll already in progress.</Reroll2_rerollInProgress>
 	<Reroll2_costSuffix> ({0}%)</Reroll2_costSuffix>
 	
