@@ -34,6 +34,8 @@ namespace MapReroll {
 			public static Texture2D UIDiceInactive;
 			public static Texture2D UISteelFront;
 			public static Texture2D UISteelBack;
+			public static Texture2D UIFavoriteStarOn;
+			public static Texture2D UIFavoriteStarOff;
 
 			static Textures() {
 				foreach (var fieldInfo in typeof(Textures).GetFields(HugsLibUtility.AllBindingFlags)) {

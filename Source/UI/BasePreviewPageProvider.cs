@@ -19,13 +19,17 @@ namespace MapReroll.UI {
 		public virtual int CurrentPage {
 			get { return currentPage; }
 		}
-
+		
 		public int NumPagesAvailable {
 			get { return Mathf.CeilToInt(previews.Count / (float)PreviewsPerPage); }
 		}
 
 		public int PreviewCount {
 			get { return previews.Count; }
+		}
+
+		public Widget_MapPreview TryFindPreview(string seed) {
+			return previews.Find(p => p.Seed == seed);
 		}
 
 		public Widget_MapPreview CurrentZoomedInPreview {
@@ -89,7 +93,7 @@ namespace MapReroll.UI {
 			var previewSize = new Vector2((inRect.width - totalSpacing) / rowCount, (inRect.height - totalSpacing) / rowCount);
 			bool anyOverlayDrawingRequired = false;
 			var maxPreviewIndex = Mathf.Min(MaxIndexOnPage(page), previews.Count-1);
-			for (int i = MinIndexOnPage(page); i <= maxPreviewIndex; i++) {
+			for (int i = maxPreviewIndex; i >= MinIndexOnPage(page); i--) {
 				var preview = previews[i];
 				var previewPosition = GetPreviewPositionFromIndex(i);
 				var previewRect = new Rect(

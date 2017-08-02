@@ -32,6 +32,10 @@ namespace MapReroll.UI {
 			get { return zoomedIn; }
 		}
 
+		public bool IsFavorite { get; set; }
+
+		public Action<Widget_MapPreview> OnFavoriteToggled { get; set; }
+
 		public Widget_MapPreview(IPromise<Texture2D> promise, string seed) {
 			PrepareComponents();
 			this.promise = promise;
@@ -44,6 +48,8 @@ namespace MapReroll.UI {
 			promise = copyFrom.promise;
 			promise.Done(OnPromiseResolved);
 			seed = copyFrom.seed;
+			IsFavorite = copyFrom.IsFavorite;
+			OnFavoriteToggled = copyFrom.OnFavoriteToggled;
 		}
 
 		private void PrepareComponents() {
@@ -69,11 +75,23 @@ namespace MapReroll.UI {
 				var texScale = spawnInterpolator.value;
 				var texRect = inRect.ScaledBy(texScale).ContractedBy(1f);
 				GUI.DrawTexture(texRect, previewTex);
+				var favSize = Resources.Textures.UIFavoriteStarOn.width;
+				var favBtnRect = new Rect(inRect.xMax - favSize - 3, inRect.yMin + 3, favSize, favSize);
+				GUI.DrawTexture(favBtnRect, IsFavorite ? Resources.Textures.UIFavoriteStarOn : Resources.Textures.UIFavoriteStarOff);
 				if (interactive) {
 					if (Mouse.IsOver(inRect)) {
-						Widgets.DrawHighlight(texRect);
-						if (Widgets.ButtonInvisible(inRect)) {
-							ZoomIn(inRect);
+						if (Mouse.IsOver(favBtnRect)) {
+							if (spawnInterpolator.finished) {
+								Widgets.DrawHighlight(favBtnRect);
+								if (Widgets.ButtonInvisible(favBtnRect)) {
+									if (OnFavoriteToggled != null) OnFavoriteToggled(this);
+								}
+							}
+						} else {
+							Widgets.DrawHighlight(texRect);
+							if (Widgets.ButtonInvisible(inRect)) {
+								ZoomIn(inRect);
+							}
 						}
 					}
 				}

@@ -11,7 +11,7 @@ namespace MapReroll.UI {
 
 		private static readonly Vector2 PageButtonSize = new Vector2(160f, 40f);
 		private static readonly Vector2 GenerateButtonSize = new Vector2(160f, 40f);
-		private static readonly Vector2 FavoriteControlSize = new Vector2(160f, 24f);
+		private static readonly Vector2 FavoriteControlSize = new Vector2(160f, Resources.Textures.UIFavoriteStarOn.width);
 		private static readonly Color GenerateButtonColor = new Color(.55f, 1f, .55f);
 
 		private readonly GeneratedPreviewPageProvider previewGenerator;
@@ -43,6 +43,7 @@ namespace MapReroll.UI {
 			favoritesProvider = new ListPreviewPageProvider();
 			previewGenerator = new GeneratedPreviewPageProvider(Find.VisibleMap);
 			previewGenerator.OpenPage(0);
+			previewGenerator.OnFavoriteToggled = OnPreviewFavoriteToggled;
 		}
 
 		public override void PreClose() {
@@ -108,6 +109,7 @@ namespace MapReroll.UI {
 		private void DoBottomBarControls(BasePreviewPageProvider pageProvider, Rect inRect) {
 			var currentZoomedPreview = pageProvider.CurrentZoomedInPreview;
 			if (currentZoomedPreview != null) {
+				// zoomed in controls
 				var generateBtnRect = new Rect(inRect.xMin, inRect.yMin, GenerateButtonSize.x, inRect.height);
 				MapRerollUtility.DrawWithGUIColor(GenerateButtonColor, () => {
 					if (Widgets.ButtonText(generateBtnRect, "Reroll2_previews_generateMap".Translate())) {
@@ -121,21 +123,13 @@ namespace MapReroll.UI {
 				});
 
 				var favoritesControlRect = new Rect(generateBtnRect.xMax + ElementSpacing, inRect.yMin, FavoriteControlSize.x, inRect.height);
-				var favoriteCheckPos = new Vector2(favoritesControlRect.xMin + ElementSpacing, favoritesControlRect.center.y - FavoriteControlSize.y / 2f);
-				var checkLabelRect = new Rect(favoriteCheckPos.x + FavoriteControlSize.y + ElementSpacing, favoriteCheckPos.y - 7f, FavoriteControlSize.x, inRect.height);
+				var favoriteCheckRect = new Rect(favoritesControlRect.xMin + ElementSpacing, favoritesControlRect.center.y - FavoriteControlSize.y / 2f, FavoriteControlSize.y, FavoriteControlSize.y);
+				var checkLabelRect = new Rect(favoriteCheckRect.x + FavoriteControlSize.y + ElementSpacing, favoriteCheckRect.y - 7f, FavoriteControlSize.x, inRect.height);
 
-				bool isPreview = favoritesProvider.Contains(currentZoomedPreview);
-				bool checkOn = isPreview;
 				if (Widgets.ButtonInvisible(favoritesControlRect)) {
-					checkOn = !checkOn;
-					(checkOn ? SoundDefOf.CheckboxTurnedOn : SoundDefOf.CheckboxTurnedOff).PlayOneShotOnCamera();
-					if (checkOn) {
-						favoritesProvider.Add(new Widget_MapPreview(currentZoomedPreview));
-					} else {
-						favoritesProvider.Remove(currentZoomedPreview);
-					}
+					OnPreviewFavoriteToggled(currentZoomedPreview);
 				}
-				Widgets.Checkbox(favoriteCheckPos, ref checkOn);
+				GUI.DrawTexture(favoriteCheckRect, currentZoomedPreview.IsFavorite ? Resources.Textures.UIFavoriteStarOn : Resources.Textures.UIFavoriteStarOff);
 				if (Mouse.IsOver(favoritesControlRect)) {
 					Widgets.DrawHighlight(favoritesControlRect);
 				}
@@ -148,6 +142,7 @@ namespace MapReroll.UI {
 					currentZoomedPreview.ZoomOut();
 				}
 			} else {
+				// paging controls
 				var numPagesToTurn = HugsLibUtility.ControlIsHeld ? 5 : 1;
 				if (pageProvider.PageIsAvailable(pageProvider.CurrentPage - numPagesToTurn)) {
 					if (Widgets.ButtonText(new Rect(inRect.xMin, inRect.yMin, PageButtonSize.x, inRect.height), "Reroll2_previews_prevPage".Translate())) {
@@ -168,6 +163,20 @@ namespace MapReroll.UI {
 				}
 				DoMouseWheelPageTurning(pageProvider);
 			}
+		}
+
+		private void OnPreviewFavoriteToggled(Widget_MapPreview preview) {
+			var makeFavorite = !preview.IsFavorite;
+			(makeFavorite ? SoundDefOf.CheckboxTurnedOn : SoundDefOf.CheckboxTurnedOff).PlayOneShotOnCamera();
+			if (makeFavorite) {
+				favoritesProvider.Add(new Widget_MapPreview(preview));
+			} else {
+				favoritesProvider.Remove(preview);
+			}
+			var fav = favoritesProvider.TryFindPreview(preview.Seed);
+			if (fav != null) fav.IsFavorite = makeFavorite;
+			var gen = previewGenerator.TryFindPreview(preview.Seed);
+			if (gen != null) gen.IsFavorite = makeFavorite;
 		}
 
 		private void DoMouseWheelPageTurning(BasePreviewPageProvider pageProvider) {

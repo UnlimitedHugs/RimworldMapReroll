@@ -1,4 +1,5 @@
-﻿using Verse;
+﻿using System;
+using Verse;
 
 namespace MapReroll.UI {
 	public class GeneratedPreviewPageProvider : BasePreviewPageProvider {
@@ -13,6 +14,8 @@ namespace MapReroll.UI {
 			lastGeneratedSeed = RerollToolbox.CurrentMapSeed(mapState);
 			previewGenerator = new MapPreviewGenerator();
 		}
+		
+		public Action<Widget_MapPreview> OnFavoriteToggled { get; set; }
 
 		public int NumQueuedPreviews {
 			get { return numQueuedPreviews; }
@@ -47,7 +50,11 @@ namespace MapReroll.UI {
 			var promise = previewGenerator.QueuePreviewForSeed(lastGeneratedSeed, startingMap.Tile, startingMap.Size.x);
 			numQueuedPreviews++;
 			promise.Finally(() => numQueuedPreviews--);
-			return new Widget_MapPreview(promise, lastGeneratedSeed);
+			return new Widget_MapPreview(promise, lastGeneratedSeed) {OnFavoriteToggled = OnFavorite};
+		}
+
+		private void OnFavorite(Widget_MapPreview widget) {
+			if (OnFavoriteToggled != null) OnFavoriteToggled(widget);
 		}
 	}
 }
