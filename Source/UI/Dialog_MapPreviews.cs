@@ -118,7 +118,7 @@ namespace MapReroll.UI {
 						Close();
 						MapRerollController.Instance.ExecuteInMainThread(() => {
 							previewGenerator.WaitForDisposal();
-							RerollToolbox.DoMapReroll(currentZoomedPreview.Seed);
+							MapRerollController.Instance.RerollMap(currentZoomedPreview.Seed);
 						});
 					}
 				});

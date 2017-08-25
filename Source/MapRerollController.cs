@@ -49,8 +49,9 @@ namespace MapReroll {
 		public SettingHandle<bool> LogConsumedResourcesSetting { get; private set; }
 		public SettingHandle<bool> NoVomitingSetting { get; private set; }
 		public SettingHandle<MapGeneratorMode> MapGeneratorModeSetting { get; set; }
-		public SettingHandle<int> WidgetSizeSetting { get; set; }
-		public SettingHandle<bool> LoadingMessagesSetting { get; set; }
+		public SettingHandle<int> WidgetSizeSetting { get; private set; }
+		public SettingHandle<bool> LoadingMessagesSetting { get; private set; }
+		public SettingHandle<bool> GeyserArrowsSetting { get; private set; }
 
 		// feel free to use these to detect reroll events 
 		public event Action OnMapRerolled;
@@ -62,6 +63,7 @@ namespace MapReroll {
 		private bool generatorSeedPushed;
 		private bool pauseScheduled;
 		private List<KeyValuePair<int, string>> cachedMapSizes;
+		private bool rerollInProgress;
 
 		private MapRerollController() {
 			Instance = this;
@@ -84,13 +86,16 @@ namespace MapReroll {
 			RerollToolbox.StoreGeneratedThingIdsInMapState(map);
 			var mapState = RerollToolbox.GetStateForMap(map);
 			mapState.UsedMapGenerator = lastUsedMapGenerator;
+			if (!rerollInProgress) {
+				mapState.ResourceBalance = MaxResourceBalance;
+			}
 		}
 
 		public override void MapLoaded(Map map) {
 			geyserReroll = new GeyserRerollTool();
-			var mapState = RerollToolbox.GetStateForMap(map);
-			if (!mapState.RerollGenerated || !PaidRerollsSetting) {
-				mapState.ResourceBalance = MaxResourceBalance;
+			if (rerollInProgress) {
+				RerollToolbox.KillMapIntroDialog();
+				if (OnMapRerolled != null) OnMapRerolled();
 			}
 
 			if (pauseScheduled) {
@@ -99,17 +104,13 @@ namespace MapReroll {
 			}
 
 			RerollToolbox.TryStopPawnVomiting(map);
+			uiController.MapLoaded(rerollInProgress);
+			rerollInProgress = false;
+		}
 
-			if (mapState.RerollGenerated) {
-				RerollToolbox.KillMapIntroDialog();
-				if (PaidRerollsSetting) {
-					// adjust map to current remaining resources and charge for the reroll
-					RerollToolbox.ReduceMapResources(map, 100 - mapState.ResourceBalance, 100);
-				}
-				if (OnMapRerolled != null) OnMapRerolled();
-			}
-
-			uiController.MapLoaded(mapState.RerollGenerated);
+		public void RerollMap(string seed) {
+			rerollInProgress = true;
+			RerollToolbox.DoMapReroll(seed);
 		}
 
 		public void RerollGeysers() {
@@ -131,19 +132,19 @@ namespace MapReroll {
 			}
 		}
 
+		public override void Tick(int currentTick) {
+			if(geyserReroll != null) geyserReroll.OnTick();
+		}
+
 		public override void OnGUI() {
 			uiController.OnGUI();
 		}
 
-		public override void Tick(int currentTick) {
-			if (geyserReroll != null) geyserReroll.OnTick();
-		}
-		
-		public void RecordUsedMapGenerator(MapGeneratorDef def) {
+		internal void RecordUsedMapGenerator(MapGeneratorDef def) {
 			lastUsedMapGenerator = def;
 		}
 
-		public void TryPushDeterministicRandState(Map map, int seed) {
+		internal void TryPushDeterministicRandState(Map map, int seed) {
 			if (MapGeneratorModeSetting.Value == MapGeneratorMode.AccuratePreviews) {
 				var deterministicSeed = Gen.HashCombineInt(GenText.StableStringHash(Find.World.info.seedString+seed), map.Tile);
 				Rand.PushState(deterministicSeed);
@@ -151,7 +152,7 @@ namespace MapReroll {
 			}
 		}
 
-		public void TryPopDeterministicRandState() {
+		internal void TryPopDeterministicRandState() {
 			if (generatorSeedPushed) {
 				generatorSeedPushed = false;
 				Rand.PopState();
@@ -162,7 +163,7 @@ namespace MapReroll {
 			scheduledMainThreadActions.Enqueue(action);
 		}
 
-		public void PauseOnNextLoad() {
+		internal void PauseOnNextLoad() {
 			pauseScheduled = true;
 		}
 
@@ -183,6 +184,8 @@ namespace MapReroll {
 			NoVomitingSetting.VisibilityPredicate = devModeVisible;
 
 			LoadingMessagesSetting = Settings.GetHandle("loadingMessages", "setting_loadingMessages_label".Translate(), "setting_loadingMessages_desc".Translate(), true);
+
+			GeyserArrowsSetting = Settings.GetHandle("geyserArrows", "setting_geyserArrows_label".Translate(), "setting_geyserArrows_desc".Translate(), true);
 
 			WidgetSizeSetting = Settings.GetHandle("widgetSize", "setting_widgetSize_label".Translate(), "setting_widgetSize_desc".Translate(), MapRerollUIController.DefaultWidgetSize, Validators.IntRangeValidator(MapRerollUIController.MinWidgetSize, MapRerollUIController.MaxWidgetSize));
 			WidgetSizeSetting.SpinnerIncrement = 8;

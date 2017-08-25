@@ -9,9 +9,8 @@ using Verse.Sound;
 
 namespace MapReroll {
 	public class GeyserRerollTool {
-		public const int GeyserSpawnIntervalTicks = 30;
-		public const int ArrowPointingDurationTicks = 60*10;
-		public const int SteamEffectDurationTicks = 60*5;
+		public const float ArrowPointingDuration = 10f;
+		public const int SteamEffectDurationTicks = GenTicks.TicksPerRealSecond * 5;
 		public const bool AllowGeyserCountReduction = true;
 
 		private readonly List<TimedGeyserArrow> drawnArrows = new List<TimedGeyserArrow>();
@@ -61,10 +60,10 @@ namespace MapReroll {
 			var oldGeysers = new HashSet<Thing>(geysersOnMap);
 			genStepDef.genStep.Generate(map);
 			var newGeysers = map.listerThings.AllThings.Where(t => t.def == geyserDef).Except(oldGeysers);
-			BeginGeyserSpawning(oldGeysers, newGeysers, map, GeyserSpawnIntervalTicks);
+			BeginGeyserSpawning(oldGeysers, newGeysers, map);
 		}
 
-		private void BeginGeyserSpawning(IEnumerable<Thing> oldGeysers, IEnumerable<Thing> newGeysers, Map map, int spawnInterval) {
+		private void BeginGeyserSpawning(IEnumerable<Thing> oldGeysers, IEnumerable<Thing> newGeysers, Map map) {
 			var oldGeysersQueue = new Queue<Thing>(oldGeysers.InRandomOrder());
 			var newGeysersList = newGeysers.ToList();
 			var newGeysersQueue = new Queue<Thing>(newGeysersList);
@@ -106,11 +105,13 @@ namespace MapReroll {
 		}
 
 		private void AddArrowDrawerFor(Thing t) {
-			drawnArrows.Add(new TimedGeyserArrow(t.TrueCenter(), Find.TickManager.TicksAbs + ArrowPointingDurationTicks));
+			if (MapRerollController.Instance.GeyserArrowsSetting) {
+				drawnArrows.Add(new TimedGeyserArrow(t.TrueCenter(), Time.unscaledTime + ArrowPointingDuration));
+			}
 		}
 
 		private void AddSteamEffectFor(Thing t) {
-			activeSteamEffects.Add(new TimedSteamEffect(t, Find.TickManager.TicksAbs + SteamEffectDurationTicks));
+			activeSteamEffects.Add(new TimedSteamEffect(t, Find.TickManager.TicksGame + SteamEffectDurationTicks));
 		}
 
 		private void DrawGeyserArrows(List<TimedGeyserArrow> arrows) {
@@ -120,8 +121,7 @@ namespace MapReroll {
 				var arrow = arrows[i];
 				GenDraw.DrawArrowPointingAt(arrow.ArrowTarget);
 			}
-			var currentTick = Find.TickManager != null ? Find.TickManager.TicksAbs : 0;
-			arrows.RemoveAll(a => currentTick > a.ExpireTick);
+			arrows.RemoveAll(a => Time.unscaledTime > a.ExpireTime);
 		}
 
 		private void DrawSteamEffects(List<TimedSteamEffect> effects) {
@@ -130,15 +130,15 @@ namespace MapReroll {
 				var effect = effects[i];
 				MoteMaker.ThrowAirPuffUp(effect.Geyser.TrueCenter(), effect.Geyser.Map);
 			}
-			effects.RemoveAll(a => Find.TickManager.TicksAbs > a.ExpireTick);
+			effects.RemoveAll(a => Find.TickManager.TicksGame > a.ExpireTick);
 		}
 
 		private class TimedGeyserArrow {
 			public readonly Vector3 ArrowTarget;
-			public readonly int ExpireTick;
-			public TimedGeyserArrow(Vector3 arrowTarget, int expireTick) {
+			public readonly float ExpireTime;
+			public TimedGeyserArrow(Vector3 arrowTarget, float expireTime) {
 				ArrowTarget = arrowTarget;
-				ExpireTick = expireTick;
+				ExpireTime = expireTime;
 			}
 		}
 

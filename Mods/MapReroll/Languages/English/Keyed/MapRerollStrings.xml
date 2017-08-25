@@ -50,6 +50,8 @@
 	<setting_changeMapSize_label>Change default map size</setting_changeMapSize_label>
 	<setting_changeMapSize_desc>This will change the size of the maps generated whenever you reroll a map or settle on a new world tile.</setting_changeMapSize_desc>
 	<setting_changeMapSize_noWorld>A game must be loaded</setting_changeMapSize_noWorld>
+	<setting_geyserArrows_label>Show geyser arrows</setting_geyserArrows_label>
+	<setting_geyserArrows_desc>Highlights new geysers with arrows when rerolling them.</setting_geyserArrows_desc>
 	
 	<!-- optional loading messages, vanilla loading message will be used if none are found -->
 	
