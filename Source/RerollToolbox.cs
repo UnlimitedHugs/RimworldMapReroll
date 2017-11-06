@@ -37,8 +37,14 @@ namespace MapReroll {
 				//Logger.Message("Non generated things: " + nonGeneratedThings.ListElements());
 
 				if (oldMapState.ScenarioGeneratedThingIds.Count > 0 && MapRerollController.Instance.AntiCheeseSetting) {
-					ClearRelationsWithPawns(colonists, oldMapState.ScenarioGeneratedThingIds);
-					DestroyThingsInWorldById(oldMapState.ScenarioGeneratedThingIds);
+					try {
+						ClearRelationsWithPawns(colonists, oldMapState.ScenarioGeneratedThingIds);
+						DestroyThingsInWorldById(oldMapState.ScenarioGeneratedThingIds);
+					} catch (Exception e) {
+						// unknown mod conflict is afoot: https://gist.github.com/HugsLibRecordKeeper/f9278475f338b5d564bf7b9f7f6642d7
+						// since this is a non-critical section we can just suppress the error for now
+						MapRerollController.Instance.Logger.Warning("Caught exception while trying to destroy world things from discarded map: "+e);
+					}
 				}
 
 				DespawnThings(playerPawns.OfType<Thing>(), oldMap);
