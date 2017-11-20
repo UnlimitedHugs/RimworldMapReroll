@@ -12,7 +12,7 @@ namespace MapReroll {
 	/// Given a map location and seed, generates an approximate preview texture of how the map would look once generated.
 	/// </summary>
 	public class MapPreviewGenerator : IDisposable {
-		private delegate TerrainDef RiverMakerTerrainAt(IntVec3 c);
+		private delegate TerrainDef RiverMakerTerrainAt(IntVec3 c, bool recordForValidation);
 		private delegate TerrainDef BeachMakerBeachTerrainAt(IntVec3 c, BiomeDef biome);
 
 		private static readonly Color defaultTerrainColor = GenColor.FromHex("6D5B49");
@@ -22,6 +22,7 @@ namespace MapReroll {
 		private static readonly Color solidStoneShadowColor = GenColor.FromHex("1C130E");
 		private static readonly Color waterColorDeep = GenColor.FromHex("3A434D");
 		private static readonly Color waterColorShallow = GenColor.FromHex("434F50");
+		private static readonly Color caveColor = GenColor.FromHex("42372b");
 
 		private static readonly Dictionary<string, Color> terrainColors = new Dictionary<string, Color> {
 			{"Sand", GenColor.FromHex("806F54")},
@@ -48,7 +49,7 @@ namespace MapReroll {
 		private EventWaitHandle mainThreadHandle = new AutoResetEvent(false);
 		private bool disposed;
 
-		public IPromise<Texture2D> QueuePreviewForSeed(string seed, int mapTile, int mapSize) {
+		public IPromise<Texture2D> QueuePreviewForSeed(string seed, int mapTile, int mapSize, bool revealCaves) {
 			if (disposeHandle == null) {
 				throw new Exception("MapPreviewGenerator has already been disposed.");
 			}
@@ -57,7 +58,7 @@ namespace MapReroll {
 				workerThread = new Thread(DoThreadWork);
 				workerThread.Start();
 			}
-			queuedRequests.Enqueue(new QueuedPreviewRequest(promise, seed, mapTile, mapSize));
+			queuedRequests.Enqueue(new QueuedPreviewRequest(promise, seed, mapTile, mapSize, revealCaves));
 			workHandle.Set();
 			return promise;
 		}
@@ -81,7 +82,7 @@ namespace MapReroll {
 							if (texture == null) {
 								throw new Exception("Could not create required texture.");
 							}
-							GeneratePreviewForSeed(req.Seed, req.MapTile, req.MapSize, texture);
+							GeneratePreviewForSeed(req.Seed, req.MapTile, req.MapSize, req.RevealCaves, texture);
 						} catch (Exception e) {
 							MapRerollController.Instance.Logger.Error("Failed to generate map preview: " + e);
 							rejectException = e;
@@ -142,12 +143,12 @@ namespace MapReroll {
 			mainThreadHandle.WaitOne(1000);
 		}
 
-		private static void GeneratePreviewForSeed(string seed, int mapTile, int mapSize, Texture2D targetTexture) {
+		private static void GeneratePreviewForSeed(string seed, int mapTile, int mapSize, bool revealCaves, Texture2D targetTexture) {
 			var prevSeed = Find.World.info.seedString;
 			Find.World.info.seedString = seed;
 			
 				try {
-					var grids = GenerateMapGrids(mapTile, mapSize);
+					var grids = GenerateMapGrids(mapTile, mapSize, revealCaves);
 					DeepProfiler.Start("generateMapPreviewTexture");
 					var terrainGenstep = new GenStep_Terrain();
 					var riverMaker = ReflectionCache.GenStepTerrain_GenerateRiver.Invoke(terrainGenstep, new object[] { grids.Map });
@@ -165,6 +166,9 @@ namespace MapReroll {
 						}
 						if (grids.ElevationGrid[cell] > rockCutoff) {
 							pixelColor = solidStoneColor;
+							if (grids.CavesGrid[cell] > 0) {
+								pixelColor = caveColor;
+							}
 						}
 						targetTexture.SetPixel(cell.x, cell.z, pixelColor);
 					}
@@ -189,7 +193,7 @@ namespace MapReroll {
 		private static TerrainDef TerrainFrom(IntVec3 c, Map map, float elevation, float fertility, RiverMakerTerrainAt riverTerrainAt, BeachMakerBeachTerrainAt beachTerrainAt, bool preferSolid) {
 			TerrainDef riverTerrain = null;
 			if (riverTerrainAt != null) {
-				riverTerrain = riverTerrainAt(c);
+				riverTerrain = riverTerrainAt(c, false);
 			}
 			if (riverTerrain == null && preferSolid) {
 				return GenStep_RocksFromGrid.RockDefAt(c).naturalTerrain;
@@ -250,13 +254,14 @@ namespace MapReroll {
 		/// <summary>
 		/// Generate a minimal map with elevation and fertility grids
 		/// </summary>
-		private static MapElevationFertilityData GenerateMapGrids(int mapTile, int mapSize) {
+		private static MapGridSet GenerateMapGrids(int mapTile, int mapSize, bool revealCaves) {
 			DeepProfiler.Start("generateMapPreviewGrids");
 			try {
 				var mapGeneratorData = (Dictionary<string, object>)ReflectionCache.MapGenerator_Data.GetValue(null);
 				mapGeneratorData.Clear();
 
 				var map = CreateMapStub(mapSize, mapTile);
+				MapGenerator.mapBeingGenerated = map;
 				foreach (var terrainPatchMaker in map.Biome.terrainPatchMakers) {
 					terrainPatchMaker.Cleanup();
 				}
@@ -266,13 +271,19 @@ namespace MapReroll {
 
 				var elevationFertilityGenstep = new GenStep_ElevationFertility();
 				elevationFertilityGenstep.Generate(map);
-				
-				var result = new MapElevationFertilityData(MapGenerator.FloatGridNamed("Elevation", map), MapGenerator.FloatGridNamed("Fertility", map), map);
-				mapGeneratorData.Clear();
 
+				if (revealCaves) {
+					var cavesGenstep = new GenStep_Caves();
+					cavesGenstep.Generate(map);
+				}
+
+				var result = new MapGridSet(MapGenerator.Elevation, MapGenerator.Fertility, MapGenerator.Caves, map);
+				mapGeneratorData.Clear();
+				
 				return result;
 			} finally {
 				DeepProfiler.End();
+				MapGenerator.mapBeingGenerated = null;
 			}
 		}
 
@@ -288,18 +299,20 @@ namespace MapReroll {
 				}
 			};
 			map.cellIndices = new CellIndices(map);
-
+			map.floodFiller = new FloodFiller(map);
 			return map;
 		}
 
-		private class MapElevationFertilityData {
+		private class MapGridSet {
 			public readonly MapGenFloatGrid ElevationGrid;
 			public readonly MapGenFloatGrid FertilityGrid;
+			public readonly MapGenFloatGrid CavesGrid;
 			public readonly Map Map;
 
-			public MapElevationFertilityData(MapGenFloatGrid elevationGrid, MapGenFloatGrid fertilityGrid, Map map) {
+			public MapGridSet(MapGenFloatGrid elevationGrid, MapGenFloatGrid fertilityGrid, MapGenFloatGrid cavesGrid, Map map) {
 				ElevationGrid = elevationGrid;
 				FertilityGrid = fertilityGrid;
+				CavesGrid = cavesGrid;
 				Map = map;
 			}
 		}
@@ -309,12 +322,14 @@ namespace MapReroll {
 			public readonly string Seed;
 			public readonly int MapTile;
 			public readonly int MapSize;
+			public readonly bool RevealCaves;
 
-			public QueuedPreviewRequest(Promise<Texture2D> promise, string seed, int mapTile, int mapSize) {
+			public QueuedPreviewRequest(Promise<Texture2D> promise, string seed, int mapTile, int mapSize, bool revealCaves) {
 				Promise = promise;
 				Seed = seed;
 				MapTile = mapTile;
 				MapSize = mapSize;
+				this.RevealCaves = revealCaves;
 			}
 		}
 	}

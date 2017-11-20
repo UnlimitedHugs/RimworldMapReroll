@@ -59,8 +59,8 @@ namespace MapReroll {
 				}
 
 				var mapSeed = seed ?? GetNextRerollSeed(CurrentMapSeed(oldMapState));
-				
-				var newMap = GenerateNewMapWithSeed(newParent, oldMap.Size, mapSeed);
+
+				var newMap = GenerateNewMapWithSeed(newParent, Find.World.info.initialMapSize, mapSeed);
 				
 				var newMapState = GetStateForMap(newMap);
 				newMapState.RerollGenerated = true;
