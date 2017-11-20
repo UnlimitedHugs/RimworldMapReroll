@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using Harmony;
+using MapReroll.Patches;
 using MapReroll.UI;
 using RimWorld;
 using UnityEngine;
@@ -45,24 +46,21 @@ namespace MapReroll.Compat {
 				// ensures the modded BeachMaker is also affected by the "Map generator mode" setting
 				var beachMakerInit = AccessTools.Method(AccessTools.TypeByName("RFR_Code.RFR_BeachMaker"), "Init");
 				if (beachMakerInit == null) throw new Exception("Failed to reflect RFR_BeachMaker.Init");
-				var prefix = ((Action<Map>)DeterministicBeachSetup).Method;
-				var postfix = ((Action)DeterministicBeachTeardown).Method;
-				harmonyInst.Patch(beachMakerInit, new HarmonyMethod(prefix), new HarmonyMethod(postfix));
+				var prefix = ((Action<Map>)DeterministicGenerationPatcher.DeterministicBeachSetup).Method;
+				DeterministicGenerationPatcher.InstrumentMethodForDeterministicGeneration(beachMakerInit, prefix, harmonyInst);
+				
+				// same for the river generator
+				var genStepTerrainGenerateRiver = AccessTools.Method(rfrTerrainGenstep, "GenerateRiver", new []{typeof(Map)});
+				if (genStepTerrainGenerateRiver == null) throw new Exception("Failed to reflect RFR_GenStep_Terrain.GenerateRiver");
+				prefix = ((Action<Map>)DeterministicGenerationPatcher.DeterministicRiverSetup).Method;
+				DeterministicGenerationPatcher.InstrumentMethodForDeterministicGeneration(genStepTerrainGenerateRiver, prefix, harmonyInst);
 
 				MapRerollController.Instance.Logger.Message("Applied Configurable Maps compatibility layer");
 			} catch (Exception e) {
 				MapRerollController.Instance.Logger.Error("Failed to apply compatibility layer for Configurable Maps:" +e);
 			}
 		}
-
-		public static void DeterministicBeachSetup(Map map) {
-			MapRerollController.Instance.TryPushDeterministicRandState(map, 1);
-		}
-
-		public static void DeterministicBeachTeardown() {
-			MapRerollController.Instance.TryPopDeterministicRandState();
-		}
-
+		
 		private static TerrainDef AlternateBeachTerrainAt(IntVec3 c, BiomeDef biome) {
 			return BeachMakerBeachTerrainAt(c, null, biome);
 		}

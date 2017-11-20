@@ -63,10 +63,10 @@
     <Compile Include="Source\MapComponent_MapRerollState.cs" />
     <Compile Include="Source\MapPreviewGenerator.cs" />
     <Compile Include="Source\Patches\ActiveDropPod_PodOpen_Patch.cs" />
-    <Compile Include="Source\Patches\BeachMaker_Init_Patch.cs" />
     <Compile Include="Source\Patches\CaravanEnterMapUtility_Enter_Patch.cs" />
+    <Compile Include="Source\Patches\DeterministicGenerationPatcher.cs" />
     <Compile Include="Source\Patches\MapGeneratorDef_GenSteps_Patch.cs" />
-    <Compile Include="Source\Patches\TerrainPatchMaker_Init_Patch.cs" />
+    <Compile Include="Source\Patches\Rand_EnsureStateStackEmpty_Patch.cs" />
     <Compile Include="Source\Promises\EnumerableExt.cs" />
     <Compile Include="Source\Promises\IPromise.cs" />
     <Compile Include="Source\Promises\Promise.cs" />

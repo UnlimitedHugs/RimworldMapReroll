@@ -150,6 +150,7 @@ namespace MapReroll {
 			Find.World.info.seedString = seed;
 			
 				try {
+					MapRerollController.RandStateStackCheckingPaused = true;
 					var grids = GenerateMapGrids(mapTile, mapSize, revealCaves);
 					DeepProfiler.Start("generateMapPreviewTexture");
 					const string terrainGenStepName = "Terrain";
@@ -188,6 +189,7 @@ namespace MapReroll {
 					DeepProfiler.End();
 					Find.World.info.seedString = prevSeed;
 					ReflectionCache.BeachMaker_Cleanup.Invoke(null, null);
+					MapRerollController.RandStateStackCheckingPaused = false;
 				}
 		}
 
@@ -305,6 +307,7 @@ namespace MapReroll {
 			};
 			map.cellIndices = new CellIndices(map);
 			map.floodFiller = new FloodFiller(map);
+			map.waterInfo = new WaterInfo(map);
 			return map;
 		}
 

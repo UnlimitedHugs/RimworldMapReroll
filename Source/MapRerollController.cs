@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Harmony;
 using HugsLib;
 using HugsLib.Settings;
 using HugsLib.Utils;
 using MapReroll.Compat;
+using MapReroll.Patches;
 using MapReroll.UI;
 using RimWorld;
 using UnityEngine;
@@ -23,6 +25,9 @@ namespace MapReroll {
 		}
 
 		public static MapRerollController Instance { get; private set; }
+
+		// prevents the main thread from messing with the Rand seeding done in the preview thread
+		public static bool RandStateStackCheckingPaused { get; set; }
 
 		private readonly Queue<Action> scheduledMainThreadActions = new Queue<Action>();
 		
@@ -62,7 +67,6 @@ namespace MapReroll {
 		private readonly MapRerollUIController uiController;
 		private MapGeneratorDef lastUsedMapGenerator;
 		private GeyserRerollTool geyserReroll;
-		private bool generatorSeedPushed;
 		private bool pauseScheduled;
 		private List<KeyValuePair<int, string>> cachedMapSizes;
 		private bool rerollInProgress;
@@ -73,10 +77,23 @@ namespace MapReroll {
 		}
 
 		public override void Initialize() {
+			ApplyDeterministicGenerationPatches();
 			ReflectionCache.PrepareReflection();
 			PrepareSettingsHandles();
 			RerollToolbox.LoadingMessages.UpdateAvailableLoadingMessageCount();
 			Compat_ConfigurableMaps.Apply(HarmonyInst);
+		}
+
+		private void ApplyDeterministicGenerationPatches() {
+			DeterministicGenerationPatcher.InstrumentMethodForDeterministicGeneration(
+				AccessTools.Method(AccessTools.TypeByName("BeachMaker"), "Init"),
+				((Action<Map>)DeterministicGenerationPatcher.DeterministicBeachSetup).Method, HarmonyInst);
+			DeterministicGenerationPatcher.InstrumentMethodForDeterministicGeneration(
+				AccessTools.Method(typeof(TerrainPatchMaker), "Init"),
+				((Action<Map>)DeterministicGenerationPatcher.DeterministicPatchesSetup).Method, HarmonyInst);
+			DeterministicGenerationPatcher.InstrumentMethodForDeterministicGeneration(
+				AccessTools.Method(typeof(GenStep_Terrain), "GenerateRiver"),
+				((Action<Map>)DeterministicGenerationPatcher.DeterministicRiverSetup).Method, HarmonyInst);
 		}
 
 		public override void MapComponentsInitializing(Map map) {
@@ -145,21 +162,6 @@ namespace MapReroll {
 
 		internal void RecordUsedMapGenerator(MapGeneratorDef def) {
 			lastUsedMapGenerator = def;
-		}
-
-		internal void TryPushDeterministicRandState(Map map, int seed) {
-			if (MapGeneratorModeSetting.Value == MapGeneratorMode.AccuratePreviews) {
-				var deterministicSeed = Gen.HashCombineInt(GenText.StableStringHash(Find.World.info.seedString+seed), map.Tile);
-				Rand.PushState(deterministicSeed);
-				generatorSeedPushed = true;
-			}
-		}
-
-		internal void TryPopDeterministicRandState() {
-			if (generatorSeedPushed) {
-				generatorSeedPushed = false;
-				Rand.PopState();
-			}
 		}
 
 		public void ExecuteInMainThread(Action action) {
