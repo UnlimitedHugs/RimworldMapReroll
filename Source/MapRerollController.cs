@@ -4,6 +4,7 @@ using System.Linq;
 using HugsLib;
 using HugsLib.Settings;
 using HugsLib.Utils;
+using MapReroll.Compat;
 using MapReroll.UI;
 using RimWorld;
 using UnityEngine;
@@ -75,6 +76,7 @@ namespace MapReroll {
 			ReflectionCache.PrepareReflection();
 			PrepareSettingsHandles();
 			RerollToolbox.LoadingMessages.UpdateAvailableLoadingMessageCount();
+			Compat_ConfigurableMaps.Apply(HarmonyInst);
 		}
 
 		public override void MapComponentsInitializing(Map map) {

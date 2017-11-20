@@ -19,6 +19,7 @@
 	<Reroll2_previews_zoomOut>Zoom out</Reroll2_previews_zoomOut>
 	<Reroll2_previews_statusGenerating>Generating previews ({0} left) {1}</Reroll2_previews_statusGenerating>
 	<Reroll2_previews_statusComplete>Done: generated {0} previews.</Reroll2_previews_statusComplete>
+	<Reroll2_previews_configureMap>Configure map</Reroll2_previews_configureMap>
 	
 	<Reroll2_finishingPreview>Completing preview</Reroll2_finishingPreview>
 	

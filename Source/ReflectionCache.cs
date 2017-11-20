@@ -11,8 +11,8 @@ namespace MapReroll {
 	public static class ReflectionCache {
 
 		public static Type ScenPartCreateIncidentType { get; private set; }
-		public static Type BeachMakerType { get; private set; }
-		public static Type RiverMakerType { get; private set; }
+		public static Type BeachMakerType { get; internal set; }
+		public static Type RiverMakerType { get; internal set; }
 
 		public static FieldInfo Sustainer_SubSustainers { get; private set; }
 		public static FieldInfo SubSustainer_Samples { get; private set; }
@@ -21,12 +21,13 @@ namespace MapReroll {
 		public static FieldInfo Scenario_Parts { get; private set; }
 		public static FieldInfo CreateIncident_IsFinished { get; private set; }
 		public static FieldInfo MapGenerator_Data { get; private set; }
+		public static FieldInfo DialogModSettings_SelMod { get; private set; }
 		
-		public static MethodInfo GenStepTerrain_GenerateRiver { get; private set; }
-		public static MethodInfo BeachMaker_Init { get; private set; }
-		public static MethodInfo BeachMaker_Cleanup { get; private set; }
-		public static MethodInfo BeachMaker_BeachTerrainAt { get; private set; }
-		public static MethodInfo RiverMaker_TerrainAt { get; private set; }
+		public static MethodInfo GenStepTerrain_GenerateRiver { get; internal set; }
+		public static MethodInfo BeachMaker_Init { get; internal set; }
+		public static MethodInfo BeachMaker_Cleanup { get; internal set; }
+		public static MethodInfo BeachMaker_BeachTerrainAt { get; internal set; }
+		public static MethodInfo RiverMaker_TerrainAt { get; internal set; }
 		
 		public static void PrepareReflection() {
 			Sustainer_SubSustainers = ReflectField("subSustainers", typeof(Sustainer), typeof(List<SubSustainer>));
@@ -54,9 +55,11 @@ namespace MapReroll {
 				GenStepTerrain_GenerateRiver = ReflectMethod("GenerateRiver", typeof(GenStep_Terrain), RiverMakerType, new[] {typeof(Map)});
 				RiverMaker_TerrainAt = ReflectMethod("TerrainAt", RiverMakerType, typeof(TerrainDef), new[] {typeof(IntVec3), typeof(bool)});
 			}
+
+			DialogModSettings_SelMod = ReflectField("selMod", typeof(Dialog_ModSettings), typeof(Mod));
 		}
 
-		private static Type ReflectType(string nameWithNamespace, Assembly assembly = null) {
+		internal static Type ReflectType(string nameWithNamespace, Assembly assembly = null) {
 			Type type;
 			if (assembly == null) {
 				type = GenTypes.GetTypeInAnyAssembly(nameWithNamespace);
@@ -69,7 +72,7 @@ namespace MapReroll {
 			return type;
 		}
 
-		private static FieldInfo ReflectField(string name, Type parentType, Type expectedFieldType) {
+		internal static FieldInfo ReflectField(string name, Type parentType, Type expectedFieldType) {
 			var field = AccessTools.Field(parentType, name);
 			if (field == null) {
 				MapRerollController.Instance.Logger.Error("Failed to reflect required field \"{0}\" in type \"{1}\".", name, parentType);
@@ -80,7 +83,7 @@ namespace MapReroll {
 			return field;
 		}
 
-		private static MethodInfo ReflectMethod(string name, Type parentType, Type expectedReturnType, Type[] expectedParameterTypes) {
+		internal static MethodInfo ReflectMethod(string name, Type parentType, Type expectedReturnType, Type[] expectedParameterTypes) {
 			var method = AccessTools.Method(parentType, name);
 			if (method == null) {
 				MapRerollController.Instance.Logger.Error("Failed to reflect required method \"{0}\" in type \"{1}\".", name, parentType);

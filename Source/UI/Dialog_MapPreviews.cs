@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using HugsLib.Utils;
 using RimWorld;
 using UnityEngine;
@@ -9,6 +10,8 @@ namespace MapReroll.UI {
 	public class Dialog_MapPreviews : Window {
 		public const float FavoriteIconScale = .75f;
 		private const float ElementSpacing = 10f;
+
+		public static event Action<Dialog_MapPreviews, Rect> DialogOnGUI;
 
 		private static readonly Vector2 PageButtonSize = new Vector2(160f, 40f);
 		private static readonly Vector2 GenerateButtonSize = new Vector2(160f, 40f);
@@ -82,6 +85,9 @@ namespace MapReroll.UI {
 			DoStatusReadout(bottomSection);
 			if (Widgets.ButtonText(new Rect(bottomSection.width - CloseButSize.x, bottomSection.yMax - CloseButSize.y, CloseButSize.x, CloseButSize.y), "CloseButton".Translate())) {
 				Close();		
+			}
+			if (DialogOnGUI != null) {
+				DialogOnGUI(this, inRect);
 			}
 		}
 
