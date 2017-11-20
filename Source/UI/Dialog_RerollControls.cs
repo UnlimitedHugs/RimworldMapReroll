@@ -1,4 +1,5 @@
 ﻿using System;
+using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
 using Verse;
@@ -89,7 +90,7 @@ namespace MapReroll.UI {
 				if (!MapRerollController.Instance.GeyserRerollInProgress) {
 					MapRerollController.Instance.RerollGeysers();
 				} else {
-					Messages.Message("Reroll2_rerollInProgress".Translate(), MessageSound.RejectInput);
+					Messages.Message("Reroll2_rerollInProgress".Translate(), MessageTypeDefOf.RejectInput);
 				}
 			});
 

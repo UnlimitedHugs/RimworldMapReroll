@@ -52,6 +52,8 @@
 	<setting_changeMapSize_noWorld>A game must be loaded</setting_changeMapSize_noWorld>
 	<setting_geyserArrows_label>Show geyser arrows</setting_geyserArrows_label>
 	<setting_geyserArrows_desc>Highlights new geysers with arrows when rerolling them.</setting_geyserArrows_desc>
+	<setting_previewCaves_label>Reveal caves on previews</setting_previewCaves_label>
+	<setting_previewCaves_desc>When enabled, the previews will show cave systems, including hidden ones. Turning this off will keep them hidden and make preview generation a bit faster.</setting_previewCaves_desc>
 	
 	<!-- optional loading messages, vanilla loading message will be used if none are found -->
 	

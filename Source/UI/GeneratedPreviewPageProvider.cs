@@ -50,7 +50,7 @@ namespace MapReroll.UI {
 
 		private Widget_MapPreview CreatePreview() {
 			lastGeneratedSeed = RerollToolbox.GetNextRerollSeed(lastGeneratedSeed);
-			var promise = previewGenerator.QueuePreviewForSeed(lastGeneratedSeed, startingMap.Tile, world.info.initialMapSize.x);
+			var promise = previewGenerator.QueuePreviewForSeed(lastGeneratedSeed, startingMap.Tile, world.info.initialMapSize.x, MapRerollController.Instance.PreviewCavesSetting);
 			numQueuedPreviews++;
 			promise.Finally(() => numQueuedPreviews--);
 			return new Widget_MapPreview(promise, lastGeneratedSeed) {OnFavoriteToggled = OnFavorite};

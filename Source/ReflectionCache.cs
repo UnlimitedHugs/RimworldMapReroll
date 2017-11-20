@@ -52,7 +52,7 @@ namespace MapReroll {
 			RiverMakerType = ReflectType("RimWorld.RiverMaker");
 			if (RiverMakerType != null) {
 				GenStepTerrain_GenerateRiver = ReflectMethod("GenerateRiver", typeof(GenStep_Terrain), RiverMakerType, new[] {typeof(Map)});
-				RiverMaker_TerrainAt = ReflectMethod("TerrainAt", RiverMakerType, typeof(TerrainDef), new[] {typeof(IntVec3)});
+				RiverMaker_TerrainAt = ReflectMethod("TerrainAt", RiverMakerType, typeof(TerrainDef), new[] {typeof(IntVec3), typeof(bool)});
 			}
 		}
 

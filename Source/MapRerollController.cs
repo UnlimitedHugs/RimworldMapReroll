@@ -52,6 +52,7 @@ namespace MapReroll {
 		public SettingHandle<int> WidgetSizeSetting { get; private set; }
 		public SettingHandle<bool> LoadingMessagesSetting { get; private set; }
 		public SettingHandle<bool> GeyserArrowsSetting { get; private set; }
+		public SettingHandle<bool> PreviewCavesSetting { get; private set; }
 
 		// feel free to use these to detect reroll events 
 		public event Action OnMapRerolled;
@@ -186,6 +187,8 @@ namespace MapReroll {
 			LoadingMessagesSetting = Settings.GetHandle("loadingMessages", "setting_loadingMessages_label".Translate(), "setting_loadingMessages_desc".Translate(), true);
 
 			GeyserArrowsSetting = Settings.GetHandle("geyserArrows", "setting_geyserArrows_label".Translate(), "setting_geyserArrows_desc".Translate(), true);
+
+			PreviewCavesSetting = Settings.GetHandle("previewCaves", "setting_previewCaves_label".Translate(), "setting_previewCaves_desc".Translate(), true);
 
 			WidgetSizeSetting = Settings.GetHandle("widgetSize", "setting_widgetSize_label".Translate(), "setting_widgetSize_desc".Translate(), MapRerollUIController.DefaultWidgetSize, Validators.IntRangeValidator(MapRerollUIController.MinWidgetSize, MapRerollUIController.MaxWidgetSize));
 			WidgetSizeSetting.SpinnerIncrement = 8;
