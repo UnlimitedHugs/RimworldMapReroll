@@ -115,7 +115,7 @@ namespace MapReroll {
 		public static void RecordPlayerAddedMapThings(IThingHolder owner, Map onMap) {
 			var state = GetStateForMap(onMap);
 			var knownOrInvalidThingIds = new HashSet<int>(state.PlayerAddedThingIds.Union(state.ScenarioGeneratedThingIds));
-			var nonColonistThings = ThingOwnerUtility.GetAllThingsRecursively(owner)
+			var nonColonistThings = ThingOwnerUtility.GetAllThingsRecursively(owner, false)
 				.Where(t => !(t is Pawn) && !knownOrInvalidThingIds.Contains(t.thingIDNumber));
 			//Logger.Message("Player added things to map: " + nonColonistThings.ListElements());
 			state.PlayerAddedThingIds.AddRange(nonColonistThings.Select(t => t.thingIDNumber));
@@ -297,7 +297,7 @@ namespace MapReroll {
 		private static void DestroyThingsInWorldById(IEnumerable<int> idsToDestroy) {
 			var idSet = new HashSet<int>(idsToDestroy);
 			var things = new List<Thing>();
-			ThingOwnerUtility.GetAllThingsRecursively(Find.World, things);
+			ThingOwnerUtility.GetAllThingsRecursively(Find.World, things, false);
 			for (int i = 0; i < things.Count; i++) {
 				var t = things[i];
 				if (idSet.Contains(t.thingIDNumber) && !t.Destroyed) {
@@ -421,7 +421,7 @@ namespace MapReroll {
 		private static List<Thing> GetAllHaulableThingsOnMap(Map map) {
 			var things = new List<Thing>();
 			var matchingThings = new List<Thing>();
-			ThingOwnerUtility.GetAllThingsRecursively(map, things);
+			ThingOwnerUtility.GetAllThingsRecursively(map, things, false);
 			for (int i = 0; i < things.Count; i++) {
 				var thing = things[i];
 				if (thing != null && thing.def != null && thing.def.EverHaulable) {
