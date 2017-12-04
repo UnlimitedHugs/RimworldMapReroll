@@ -44,7 +44,7 @@ namespace MapReroll.Compat {
 				Dialog_MapPreviews.DialogOnGUI += ExtraMapPreviewsDialogOnGUI;
 
 				// ensures the modded BeachMaker is also affected by the "Map generator mode" setting
-				var beachMakerInit = AccessTools.Method(AccessTools.TypeByName("RFR_Code.RFR_BeachMaker"), "Init");
+				var beachMakerInit = AccessTools.Method(GenTypes.GetTypeInAnyAssembly("RFR_Code.RFR_BeachMaker"), "Init");
 				if (beachMakerInit == null) throw new Exception("Failed to reflect RFR_BeachMaker.Init");
 				var prefix = ((Action<Map>)DeterministicGenerationPatcher.DeterministicBeachSetup).Method;
 				DeterministicGenerationPatcher.InstrumentMethodForDeterministicGeneration(beachMakerInit, prefix, harmonyInst);

@@ -86,7 +86,7 @@ namespace MapReroll {
 
 		private void ApplyDeterministicGenerationPatches() {
 			DeterministicGenerationPatcher.InstrumentMethodForDeterministicGeneration(
-				AccessTools.Method(AccessTools.TypeByName("BeachMaker"), "Init"),
+				AccessTools.Method(GenTypes.GetTypeInAnyAssembly("Rimworld.BeachMaker"), "Init"),
 				((Action<Map>)DeterministicGenerationPatcher.DeterministicBeachSetup).Method, HarmonyInst);
 			DeterministicGenerationPatcher.InstrumentMethodForDeterministicGeneration(
 				AccessTools.Method(typeof(TerrainPatchMaker), "Init"),
