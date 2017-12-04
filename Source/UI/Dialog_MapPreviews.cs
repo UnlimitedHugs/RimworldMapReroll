@@ -37,6 +37,7 @@ namespace MapReroll.UI {
 		}
 
 		public Dialog_MapPreviews() {
+			layer = WindowLayer.SubSuper;
 			forcePause = true;
 			absorbInputAroundWindow = true;
 			draggable = false;

@@ -15,6 +15,7 @@ namespace MapReroll.UI {
 		private Widget_ResourceBalance balanceWidget;
 
 		public Dialog_RerollControls() {
+			layer = WindowLayer.SubSuper;
 			closeOnEscapeKey = true;
 			doCloseButton = false;
 			doCloseX = false;

@@ -67,9 +67,13 @@ namespace MapReroll.UI {
 
 		public void OnGUI() {
 			if (ShowInterface && Find.TickManager.TicksGame > 0) {
-				if (Widgets.ButtonImage(GetWidgetRect(), Resources.Textures.UIDiceInactive)) {
-					Find.WindowStack.Add(new Dialog_RerollControls());
-				}
+				var widgetRect = GetWidgetRect();
+				Find.WindowStack.ImmediateWindow(983648, widgetRect, WindowLayer.SubSuper, () => {
+					if (Widgets.ButtonImage(widgetRect.AtZero(), Resources.Textures.UIDiceInactive)) {
+						Find.WindowStack.Add(new Dialog_RerollControls());
+					}	
+				}, false, false, 0f);
+				
 			}
 		}
 	}
