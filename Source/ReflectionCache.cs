@@ -14,11 +14,8 @@ namespace MapReroll {
 		public static Type BeachMakerType { get; internal set; }
 		public static Type RiverMakerType { get; internal set; }
 
-		public static FieldInfo Sustainer_SubSustainers { get; private set; }
-		public static FieldInfo SubSustainer_Samples { get; private set; }
 		public static FieldInfo Thing_State { get; private set; }
 		public static FieldInfo Building_SustainerAmbient { get; private set; }
-		public static FieldInfo Scenario_Parts { get; private set; }
 		public static FieldInfo CreateIncident_IsFinished { get; private set; }
 		public static FieldInfo MapGenerator_Data { get; private set; }
 		public static FieldInfo DialogModSettings_SelMod { get; private set; }
@@ -30,11 +27,8 @@ namespace MapReroll {
 		public static MethodInfo RiverMaker_TerrainAt { get; internal set; }
 		
 		public static void PrepareReflection() {
-			Sustainer_SubSustainers = ReflectField("subSustainers", typeof(Sustainer), typeof(List<SubSustainer>));
-			SubSustainer_Samples = ReflectField("samples", typeof(SubSustainer), typeof(List<SampleSustainer>));
 			Thing_State = ReflectField("mapIndexOrState", typeof(Thing), typeof(sbyte));
 			Building_SustainerAmbient = ReflectField("sustainerAmbient", typeof(Building), typeof(Sustainer));
-			Scenario_Parts = ReflectField("parts", typeof(Scenario), typeof(List<ScenPart>));
 
 			ScenPartCreateIncidentType = ReflectType("RimWorld.ScenPart_CreateIncident", typeof(ScenPart).Assembly);
 			if (ScenPartCreateIncidentType != null) {

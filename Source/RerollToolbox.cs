@@ -103,7 +103,7 @@ namespace MapReroll {
 			}
 			var comp = map.GetComponent<MapComponent_MapRerollState>();
 			if (comp == null) {
-				MapRerollController.Instance.Logger.Error(String.Format("Could not get MapComponent_MapRerollState from map {0}: {1}", map, Environment.StackTrace));
+				MapRerollController.Instance.Logger.Error($"Could not get MapComponent_MapRerollState from map {map}: {Environment.StackTrace}");
 				return null;
 			}
 			return comp.State ?? (comp.State = new RerollMapState());
@@ -205,7 +205,7 @@ namespace MapReroll {
 		}
 
 		private static List<Thing> GetAllResourcesOnMap(Map map) {
-			return map.listerThings.AllThings.Where(t => t.def != null && t.def.building != null && t.def.building.mineableScatterCommonality > 0)
+			return map.listerThings.AllThings.Where(t => t.def?.building != null && t.def.building.mineableScatterCommonality > 0)
 				.OrderBy(HasAdjacentNaturalRockComparator).ToList();
 		}
 
@@ -214,7 +214,7 @@ namespace MapReroll {
 			for (int i = 0; i < GenAdj.CardinalDirectionsAround.Length; i++) {
 				var adjacentPos = t.Position + GenAdj.CardinalDirectionsAround[i];
 				var adjacentThing = t.Map.edificeGrid[adjacentPos];
-				if (adjacentThing != null && adjacentThing.def != null && adjacentThing.def.building != null && adjacentThing.def.building.isNaturalRock && !adjacentThing.def.building.isResourceRock) {
+				if (adjacentThing?.def?.building != null && adjacentThing.def.building.isNaturalRock && !adjacentThing.def.building.isResourceRock) {
 					return Rand.Range(0, int.MaxValue / 2);
 				}
 			}
@@ -225,7 +225,7 @@ namespace MapReroll {
 			for (int i = 0; i < GenAdj.CardinalDirectionsAround.Length; i++) {
 				var adjacent = pos + GenAdj.CardinalDirectionsAround[i];
 				var adjacentThing = map.edificeGrid[adjacent];
-				if (adjacentThing != null && adjacentThing.def != null && adjacentThing.def.building != null && adjacentThing.def.building.isNaturalRock && viableRockTypes.Contains(adjacentThing.def)) {
+				if (adjacentThing?.def?.building != null && adjacentThing.def.building.isNaturalRock && viableRockTypes.Contains(adjacentThing.def)) {
 					return adjacentThing.def;
 				}
 			}
@@ -395,7 +395,7 @@ namespace MapReroll {
 			foreach (var thing in things) {
 				EjectThingFromContainer(thing, referenceMap);
 				var pawn = thing as Pawn;
-				if (pawn != null && pawn.carryTracker != null && pawn.carryTracker.CarriedThing != null) {
+				if (pawn?.carryTracker?.CarriedThing != null) {
 					Thing dropped;
 					pawn.carryTracker.TryDropCarriedThing(thing.Position, ThingPlaceMode.Near, out dropped);
 				}
@@ -428,7 +428,7 @@ namespace MapReroll {
 			ThingOwnerUtility.GetAllThingsRecursively(map, things, false);
 			for (int i = 0; i < things.Count; i++) {
 				var thing = things[i];
-				if (thing != null && thing.def != null && thing.def.EverHaulable) {
+				if (thing?.def != null && thing.def.EverHaulable) {
 					matchingThings.Add(thing);
 				}
 			}

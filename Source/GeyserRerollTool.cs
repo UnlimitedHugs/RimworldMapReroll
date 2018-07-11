@@ -44,14 +44,14 @@ namespace MapReroll {
 			}
 			var state = RerollToolbox.GetStateForMap(map);
 			if (state.UsedMapGenerator == null) {
-				logger.Error(string.Format("Cannot reroll geysers: map {0} does not have a recorded MapGeneratorDef", map));
+				logger.Error($"Cannot reroll geysers: map {map} does not have a recorded MapGeneratorDef");
 				return;
 			}
 			var geyserDef = ThingDefOf.SteamGeyser;
 			var genStepDef = state.UsedMapGenerator.genSteps.FirstOrDefault(g => g.genStep is GenStep_ScatterThings
 																			&& (g.genStep as GenStep_ScatterThings).thingDef == geyserDef);
 			if (genStepDef == null) {
-				logger.Error(string.Format("Cannot reroll geysers: map generator {0} does not have a geyser GenStep", state.UsedMapGenerator));
+				logger.Error($"Cannot reroll geysers: map generator {state.UsedMapGenerator} does not have a geyser GenStep");
 				return;
 			}
 			drawnArrows.Clear();

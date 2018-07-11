@@ -13,15 +13,11 @@ namespace MapReroll.UI {
 		protected int currentPage;
 		protected Widget_MapPreview overlayPreview;
 		
-		private ValueInterpolator pageInterpolator;
+		private readonly ValueInterpolator pageInterpolator;
 		private int outgoingPage = -1;
 
-		public virtual int CurrentPage {
+		public int CurrentPage {
 			get { return currentPage; }
-		}
-		
-		public int NumPagesAvailable {
-			get { return Mathf.CeilToInt(previews.Count / (float)PreviewsPerPage); }
 		}
 
 		public int PreviewCount {
@@ -65,7 +61,7 @@ namespace MapReroll.UI {
 			return pageIndex >= 0 && MaxIndexOnPage(pageIndex-1)+1 < previews.Count;
 		}
 
-		public virtual void Draw(Rect inRect) {
+		public void Draw(Rect inRect) {
 			if (Event.current.type == EventType.Repaint) {
 				pageInterpolator.Update();
 			}

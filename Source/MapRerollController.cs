@@ -58,7 +58,8 @@ namespace MapReroll {
 		public SettingHandle<bool> GeyserArrowsSetting { get; private set; }
 		public SettingHandle<bool> PreviewCavesSetting { get; private set; }
 
-		// feel free to use these to detect reroll events 
+		// feel free to use these to detect reroll events
+		// ReSharper disable EventNeverSubscribedTo.Global
 		public event Action OnMapRerolled;
 		public event Action OnGeysersRerolled;
 
@@ -159,20 +160,20 @@ namespace MapReroll {
 		}
 
 		private void PrepareSettingsHandles() {
-			SettingHandle.ShouldDisplay devModeVisible = () => Prefs.DevMode;
+			bool DevModeVisible() => Prefs.DevMode;
 
 			PaidRerollsSetting = Settings.GetHandle("paidRerolls", "setting_paidRerolls_label".Translate(), "setting_paidRerolls_desc".Translate(), true);
 			
 			DeterministicRerollsSetting = Settings.GetHandle("deterministicRerolls", "setting_deterministicRerolls_label".Translate(), "setting_deterministicRerolls_desc".Translate(), true);
 
 			AntiCheeseSetting = Settings.GetHandle("antiCheese", "setting_antiCheese_label".Translate(), "setting_antiCheese_desc".Translate(), true);
-			AntiCheeseSetting.VisibilityPredicate = devModeVisible;
+			AntiCheeseSetting.VisibilityPredicate = DevModeVisible;
 
 			LogConsumedResourcesSetting = Settings.GetHandle("logConsumption", "setting_logConsumption_label".Translate(), "setting_logConsumption_desc".Translate(), false);
-			LogConsumedResourcesSetting.VisibilityPredicate = devModeVisible;
+			LogConsumedResourcesSetting.VisibilityPredicate = DevModeVisible;
 
 			NoVomitingSetting = Settings.GetHandle("noVomiting", "setting_noVomiting_label".Translate(), "setting_noVomiting_desc".Translate(), false);
-			NoVomitingSetting.VisibilityPredicate = devModeVisible;
+			NoVomitingSetting.VisibilityPredicate = DevModeVisible;
 
 			LoadingMessagesSetting = Settings.GetHandle("loadingMessages", "setting_loadingMessages_label".Translate(), "setting_loadingMessages_desc".Translate(), true);
 
