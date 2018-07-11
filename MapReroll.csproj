@@ -39,8 +39,8 @@
       <HintPath>..\0Harmony.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\Assembly-CSharp.dll</HintPath>
+    <Reference Include="Assembly-CSharp-1.0">
+      <HintPath>..\Assembly-CSharp-1.0.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -65,7 +65,7 @@
     <Compile Include="Source\Patches\ActiveDropPod_PodOpen_Patch.cs" />
     <Compile Include="Source\Patches\CaravanEnterMapUtility_Enter_Patch.cs" />
     <Compile Include="Source\Patches\DeterministicGenerationPatcher.cs" />
-    <Compile Include="Source\Patches\MapGeneratorDef_GenSteps_Patch.cs" />
+    <Compile Include="Source\Patches\MapGenerator_GenerateMap_Patch.cs" />
     <Compile Include="Source\Patches\Rand_EnsureStateStackEmpty_Patch.cs" />
     <Compile Include="Source\Promises\EnumerableExt.cs" />
     <Compile Include="Source\Promises\IPromise.cs" />

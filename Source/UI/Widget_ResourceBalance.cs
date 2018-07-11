@@ -12,14 +12,14 @@ namespace MapReroll.UI {
 		private float lastSeenBalance;
 
 		public Widget_ResourceBalance(float customStartValue = -1) {
-			var map = Find.VisibleMap;
+			var map = Find.CurrentMap;
 			var startValue = customStartValue >= 0 ? customStartValue : (map != null ? GetResourceBalance(map) : 100);
 			lastSeenBalance = startValue;
 			interpolator = new ValueInterpolator(startValue);
 		}
 		
 		public void DrawLayout(float height) {
-			var map = Find.VisibleMap;
+			var map = Find.CurrentMap;
 			if (map == null) return;
 			UpdateInterpolator(map);
 			GUILayout.Box(string.Empty, Widgets.EmptyStyle, GUILayout.ExpandWidth(true), GUILayout.Height(height));

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using HugsLib;
 using MapReroll.Promises;
 using RimWorld;
 using RimWorld.Planet;
@@ -13,6 +14,7 @@ namespace MapReroll {
 	/// </summary>
 	public class MapPreviewGenerator : IDisposable {
 		public delegate TerrainDef BeachMakerBeachTerrainAt(IntVec3 c, BiomeDef biome);
+
 		private delegate TerrainDef RiverMakerTerrainAt(IntVec3 c, bool recordForValidation);
 
 		public static BeachMakerBeachTerrainAt AlternateBeachTerrainAtDelegate;
@@ -74,25 +76,29 @@ namespace MapReroll {
 						var req = queuedRequests.Dequeue();
 						request = req;
 						Texture2D texture = null;
+						int width = 0, height = 0;
 						WaitForExecutionInMainThread(() => {
 							// textures must be instantiated in the main thread
 							texture = new Texture2D(req.MapSize, req.MapSize, TextureFormat.RGB24, false);
-							texture.Apply();
+							width = texture.width;
+							height = texture.height;
 						});
-						
+						ThreadableTexture placeholderTex = null;
 						try {
 							if (texture == null) {
 								throw new Exception("Could not create required texture.");
 							}
-							GeneratePreviewForSeed(req.Seed, req.MapTile, req.MapSize, req.RevealCaves, texture);
+							placeholderTex = new ThreadableTexture(width, height);
+							GeneratePreviewForSeed(req.Seed, req.MapTile, req.MapSize, req.RevealCaves, placeholderTex);
 						} catch (Exception e) {
 							MapRerollController.Instance.Logger.Error("Failed to generate map preview: " + e);
 							rejectException = e;
 							texture = null;
 						}
-						if (texture != null) {
+						if (texture != null && placeholderTex != null) {
 							WaitForExecutionInMainThread(() => {
 								// upload in main thread
+								placeholderTex.CopyToTexture(texture);
 								texture.Apply();
 							});
 						}
@@ -138,78 +144,82 @@ namespace MapReroll {
 		/// </summary>
 		private void WaitForExecutionInMainThread(Action action) {
 			if (mainThreadHandle == null) return;
-			MapRerollController.Instance.ExecuteInMainThread(() => {
+			HugsLibController.Instance.DoLater.DoNextUpdate(() => {
 				action();
 				mainThreadHandle.Set();
 			});
 			mainThreadHandle.WaitOne(1000);
 		}
 
-		private static void GeneratePreviewForSeed(string seed, int mapTile, int mapSize, bool revealCaves, Texture2D targetTexture) {
+		private static void GeneratePreviewForSeed(string seed, int mapTile, int mapSize, bool revealCaves, ThreadableTexture texture) {
 			var prevSeed = Find.World.info.seedString;
 			Find.World.info.seedString = seed;
-			
-				try {
-					MapRerollController.RandStateStackCheckingPaused = true;
-					var grids = GenerateMapGrids(mapTile, mapSize, revealCaves);
-					DeepProfiler.Start("generateMapPreviewTexture");
-					const string terrainGenStepName = "Terrain";
-					var terrainGenStepDef = DefDatabase<GenStepDef>.GetNamedSilentFail(terrainGenStepName);
-					if(terrainGenStepDef == null) throw new Exception("Named GenStepDef not found: "+terrainGenStepName);
-					var terrainGenstep = terrainGenStepDef.genStep;
-					var riverMaker = ReflectionCache.GenStepTerrain_GenerateRiver.Invoke(terrainGenstep, new object[] { grids.Map });
-					var beachTerrainAtDelegate = AlternateBeachTerrainAtDelegate ?? (BeachMakerBeachTerrainAt)Delegate.CreateDelegate(typeof(BeachMakerBeachTerrainAt), null, ReflectionCache.BeachMaker_BeachTerrainAt);
-					var riverTerrainAtDelegate = riverMaker == null ? null : (RiverMakerTerrainAt)Delegate.CreateDelegate(typeof(RiverMakerTerrainAt), riverMaker, ReflectionCache.RiverMaker_TerrainAt);
-					ReflectionCache.BeachMaker_Init.Invoke(null, new object[] {grids.Map});
 
-					var mapBounds = CellRect.WholeMap(grids.Map);
-					foreach (var cell in mapBounds) {
-						const float rockCutoff = .7f;
-						var terrainDef = TerrainFrom(cell, grids.Map, grids.ElevationGrid[cell], grids.FertilityGrid[cell], riverTerrainAtDelegate, beachTerrainAtDelegate, false);
-						Color pixelColor;
-						if (!terrainColors.TryGetValue(terrainDef.defName, out pixelColor)) {
-							pixelColor = missingTerrainColor;
-						}
-						if (grids.ElevationGrid[cell] > rockCutoff) {
-							pixelColor = solidStoneColor;
-							if (grids.CavesGrid[cell] > 0) {
-								pixelColor = caveColor;
-							}
-						}
-						targetTexture.SetPixel(cell.x, cell.z, pixelColor);
-					}
+			try {
+				MapRerollController.RandStateStackCheckingPaused = true;
+				var grids = GenerateMapGrids(mapTile, mapSize, revealCaves);
+				DeepProfiler.Start("generateMapPreviewTexture");
+				const string terrainGenStepName = "Terrain";
+				var terrainGenStepDef = DefDatabase<GenStepDef>.GetNamedSilentFail(terrainGenStepName);
+				if (terrainGenStepDef == null) throw new Exception("Named GenStepDef not found: " + terrainGenStepName);
+				var terrainGenstep = terrainGenStepDef.genStep;
+				var riverMaker = ReflectionCache.GenStepTerrain_GenerateRiver.Invoke(terrainGenstep, new object[] {grids.Map});
+				var beachTerrainAtDelegate = AlternateBeachTerrainAtDelegate ??
+											(BeachMakerBeachTerrainAt)Delegate.CreateDelegate(typeof(BeachMakerBeachTerrainAt), null, ReflectionCache.BeachMaker_BeachTerrainAt);
+				var riverTerrainAtDelegate = riverMaker == null
+					? null
+					: (RiverMakerTerrainAt)Delegate.CreateDelegate(typeof(RiverMakerTerrainAt), riverMaker, ReflectionCache.RiverMaker_TerrainAt);
+				ReflectionCache.BeachMaker_Init.Invoke(null, new object[] {grids.Map});
 
-					AddBevelToSolidStone(targetTexture);
-					
-					foreach (var terrainPatchMaker in grids.Map.Biome.terrainPatchMakers) {
-						terrainPatchMaker.Cleanup();
+				var mapBounds = CellRect.WholeMap(grids.Map);
+				foreach (var cell in mapBounds) {
+					const float rockCutoff = .7f;
+					var terrainDef = TerrainFrom(cell, grids.Map, grids.ElevationGrid[cell], grids.FertilityGrid[cell], riverTerrainAtDelegate, beachTerrainAtDelegate, false);
+					Color pixelColor;
+					if (!terrainColors.TryGetValue(terrainDef.defName, out pixelColor)) {
+						pixelColor = missingTerrainColor;
 					}
-				} finally {
-					RockNoises.Reset();
-					DeepProfiler.End();
-					Find.World.info.seedString = prevSeed;
-					ReflectionCache.BeachMaker_Cleanup.Invoke(null, null);
-					MapRerollController.RandStateStackCheckingPaused = false;
+					if (grids.ElevationGrid[cell] > rockCutoff) {
+						pixelColor = solidStoneColor;
+						if (grids.CavesGrid[cell] > 0) {
+							pixelColor = caveColor;
+						}
+					}
+					texture.SetPixel(cell.x, cell.z, pixelColor);
 				}
+
+				AddBevelToSolidStone(texture);
+
+				foreach (var terrainPatchMaker in grids.Map.Biome.terrainPatchMakers) {
+					terrainPatchMaker.Cleanup();
+				}
+			} finally {
+				RockNoises.Reset();
+				DeepProfiler.End();
+				Find.World.info.seedString = prevSeed;
+				ReflectionCache.BeachMaker_Cleanup.Invoke(null, null);
+				MapRerollController.RandStateStackCheckingPaused = false;
+			}
 		}
 
 		/// <summary>
 		/// Identifies the terrain def that would have been used at the given map location.
 		/// Swiped from GenStep_Terrain. Extracted for performance reasons.
 		/// </summary>
-		private static TerrainDef TerrainFrom(IntVec3 c, Map map, float elevation, float fertility, RiverMakerTerrainAt riverTerrainAt, BeachMakerBeachTerrainAt beachTerrainAt, bool preferSolid) {
+		private static TerrainDef TerrainFrom(IntVec3 c, Map map, float elevation, float fertility, RiverMakerTerrainAt riverTerrainAt, BeachMakerBeachTerrainAt beachTerrainAt,
+			bool preferSolid) {
 			TerrainDef riverTerrain = null;
 			if (riverTerrainAt != null) {
 				riverTerrain = riverTerrainAt(c, false);
 			}
 			if (riverTerrain == null && preferSolid) {
-				return GenStep_RocksFromGrid.RockDefAt(c).naturalTerrain;
+				return GenStep_RocksFromGrid.RockDefAt(c).building.naturalTerrain;
 			}
-			TerrainDef beachTerrain = beachTerrainAt(c, map.Biome);
+			var beachTerrain = beachTerrainAt(c, map.Biome);
 			if (beachTerrain == TerrainDefOf.WaterOceanDeep) {
 				return beachTerrain;
 			}
-			if (riverTerrain == TerrainDefOf.WaterMovingShallow || riverTerrain == TerrainDefOf.WaterMovingDeep) {
+			if (riverTerrain == TerrainDefOf.WaterMovingShallow || riverTerrain == TerrainDefOf.WaterMovingChestDeep) {
 				return riverTerrain;
 			}
 			if (beachTerrain != null) {
@@ -219,7 +229,7 @@ namespace MapReroll {
 				return riverTerrain;
 			}
 			for (int i = 0; i < map.Biome.terrainPatchMakers.Count; i++) {
-				beachTerrain = map.Biome.terrainPatchMakers[i].TerrainAt(c, map);
+				beachTerrain = map.Biome.terrainPatchMakers[i].TerrainAt(c, map, fertility);
 				if (beachTerrain != null) {
 					return beachTerrain;
 				}
@@ -228,7 +238,7 @@ namespace MapReroll {
 				return TerrainDefOf.Gravel;
 			}
 			if (elevation >= 0.61f) {
-				return GenStep_RocksFromGrid.RockDefAt(c).naturalTerrain;
+				return GenStep_RocksFromGrid.RockDefAt(c).building.naturalTerrain;
 			}
 			beachTerrain = TerrainThreshold.TerrainAtValue(map.Biome.terrainsByFertility, fertility);
 			if (beachTerrain != null) {
@@ -240,7 +250,7 @@ namespace MapReroll {
 		/// <summary>
 		/// Adds highlights and shadows to the solid stone color in the texture
 		/// </summary>
-		private static void AddBevelToSolidStone(Texture2D tex) {
+		private static void AddBevelToSolidStone(ThreadableTexture tex) {
 			for (int x = 0; x < tex.width; x++) {
 				for (int y = 0; y < tex.height; y++) {
 					var isStone = tex.GetPixel(x, y) == solidStoneColor;
@@ -264,33 +274,35 @@ namespace MapReroll {
 		private static MapGridSet GenerateMapGrids(int mapTile, int mapSize, bool revealCaves) {
 			DeepProfiler.Start("generateMapPreviewGrids");
 			try {
+				Rand.PushState();
 				var mapGeneratorData = (Dictionary<string, object>)ReflectionCache.MapGenerator_Data.GetValue(null);
 				mapGeneratorData.Clear();
 
 				var map = CreateMapStub(mapSize, mapTile);
 				MapGenerator.mapBeingGenerated = map;
-				foreach (var terrainPatchMaker in map.Biome.terrainPatchMakers) {
-					terrainPatchMaker.Cleanup();
-				}
-
-				Rand.Seed = Gen.HashCombineInt(Find.World.info.Seed, map.Tile);
+				
+				var mapSeed = Gen.HashCombineInt(Find.World.info.Seed, map.Tile);
+				Rand.Seed = mapSeed;
 				RockNoises.Init(map);
 
 				var elevationFertilityGenstep = new GenStep_ElevationFertility();
+				Rand.Seed = Gen.HashCombineInt(mapSeed, elevationFertilityGenstep.SeedPart);
 				elevationFertilityGenstep.Generate(map);
 
 				if (revealCaves) {
 					var cavesGenstep = new GenStep_Caves();
+					Rand.Seed = Gen.HashCombineInt(mapSeed, cavesGenstep.SeedPart);
 					cavesGenstep.Generate(map);
 				}
 
 				var result = new MapGridSet(MapGenerator.Elevation, MapGenerator.Fertility, MapGenerator.Caves, map);
 				mapGeneratorData.Clear();
-				
+
 				return result;
 			} finally {
 				DeepProfiler.End();
 				MapGenerator.mapBeingGenerated = null;
+				Rand.PopState();
 			}
 		}
 
@@ -338,6 +350,32 @@ namespace MapReroll {
 				MapTile = mapTile;
 				MapSize = mapSize;
 				RevealCaves = revealCaves;
+			}
+		}
+
+		// A placeholder for Texture2D that can be used in threads other than the main one (required since 1.0)
+		private class ThreadableTexture {
+			// pixels are laid out left to right, top to bottom
+			private readonly Color[] pixels;
+			public readonly int width;
+			public readonly int height;
+
+			public ThreadableTexture(int width, int height) {
+				this.width = width;
+				this.height = height;
+				pixels = new Color[width * height];
+			}
+
+			public void SetPixel(int x, int y, Color color) {
+				pixels[y * height + x] = color;
+			}
+
+			public Color GetPixel(int x, int y) {
+				return pixels[y * height + x];
+			}
+
+			public void CopyToTexture(Texture2D tex) {
+				tex.SetPixels(pixels);
 			}
 		}
 	}

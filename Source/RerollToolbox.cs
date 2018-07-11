@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using HugsLib;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
@@ -17,7 +18,7 @@ namespace MapReroll {
 		private const sbyte ThingDiscardedState = -3;
 
 		public static void DoMapReroll(string seed = null) {
-			var oldMap = Find.VisibleMap;
+			var oldMap = Find.CurrentMap;
 			if (oldMap == null) {
 				MapRerollController.Instance.Logger.Error("No visible map- cannot reroll");
 				return;
@@ -95,7 +96,7 @@ namespace MapReroll {
 		}
 
 		public static RerollMapState GetStateForMap(Map map = null) {
-			if (map == null) map = Find.VisibleMap;
+			if (map == null) map = Find.CurrentMap;
 			if (map == null) {
 				MapRerollController.Instance.Logger.Error("Cannot get state from null map. VisibleMap was null, as well: " + Environment.StackTrace);
 				return null;
@@ -175,7 +176,7 @@ namespace MapReroll {
 		}
 
 		public static void ChargeForOperation(PaidOperationType type, int desiredPreviewsPage = 0) {
-			var map = Find.VisibleMap;
+			var map = Find.CurrentMap;
 			var state = GetStateForMap(map);
 			var cost = GetOperationCost(type, desiredPreviewsPage);
 			if (cost > 0) {
@@ -310,7 +311,7 @@ namespace MapReroll {
 			foreach (var pawn in pawns) {
 				if (pawn.Destroyed) continue;
 				IntVec3 pos;
-				if (!DropCellFinder.TryFindDropSpotNear(map.Center, map, out pos, false, false)) {
+				if (!DropCellFinder.TryFindDropSpotNear(map.Center, map, out pos, false, false, false)) {
 					pos = map.Center;
 					MapRerollController.Instance.Logger.Error("Could not find drop spot for pawn {0} on map {1}", pawn, map);
 				}
@@ -327,7 +328,7 @@ namespace MapReroll {
 			foreach (var thing in things) {
 				if (thing.Destroyed || thing.Spawned) continue;
 				IntVec3 pos;
-				if (!DropCellFinder.TryFindDropSpotNear(map.Center, map, out pos, false, false)) {
+				if (!DropCellFinder.TryFindDropSpotNear(map.Center, map, out pos, false, false, false)) {
 					pos = map.Center;
 				}
 				if (!GenPlace.TryPlaceThing(thing, pos, map, ThingPlaceMode.Near)) {
@@ -345,7 +346,7 @@ namespace MapReroll {
 				startingSeason = Season.Undefined,
 				startedFromEntry = true,
 				startingTile = state.StartingTile,
-				startingPawns = GetAllPlayerPawnsOnMap(sourceMap).Where(p => p.IsColonist).ToList()
+				startingAndOptionalPawns = GetAllPlayerPawnsOnMap(sourceMap).Where(p => p.IsColonist).ToList()
 			};
 		}
 
@@ -356,12 +357,15 @@ namespace MapReroll {
 		}
 
 		private static void DiscardFactionBase(MapParent mapParent) {
-			Current.Game.DeinitAndRemoveMap(mapParent.Map);
-			Find.WorldObjects.Remove(mapParent);
+			// run from main thread due to Unity constraints
+			HugsLibController.Instance.DoLater.DoNextUpdate(() => {
+				Current.Game.DeinitAndRemoveMap(mapParent.Map);
+				Find.WorldObjects.Remove(mapParent);
+			});
 		}
 
 		private static void SwitchToMap(Map newMap) {
-			Current.Game.VisibleMap = newMap;
+			Current.Game.CurrentMap = newMap;
 		}
 
 		private static Map GenerateNewMapWithSeed(MapParent mapParent, IntVec3 size, string seed) {
@@ -400,7 +404,7 @@ namespace MapReroll {
 		}
 
 		private static MapParent PlaceNewMapParent(int worldTile) {
-			var newParent = (MapParent)WorldObjectMaker.MakeWorldObject(WorldObjectDefOf.FactionBase);
+			var newParent = (MapParent)WorldObjectMaker.MakeWorldObject(WorldObjectDefOf.Settlement);
 			newParent.Tile = worldTile;
 			newParent.SetFaction(Faction.OfPlayer);
 			Find.WorldObjects.Add(newParent);

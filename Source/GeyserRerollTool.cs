@@ -32,7 +32,7 @@ namespace MapReroll {
 		}
 
 		public void DoReroll() {
-			var map = Find.VisibleMap;
+			var map = Find.CurrentMap;
 			var logger = MapRerollController.Instance.Logger;
 			if (RerollInProgress) {
 				logger.Error("Cannot reroll geysers- reroll already in progress");
@@ -48,7 +48,7 @@ namespace MapReroll {
 				return;
 			}
 			var geyserDef = ThingDefOf.SteamGeyser;
-			var genStepDef = state.UsedMapGenerator.GenSteps.FirstOrDefault(g => g.genStep is GenStep_ScatterThings
+			var genStepDef = state.UsedMapGenerator.genSteps.FirstOrDefault(g => g.genStep is GenStep_ScatterThings
 																			&& (g.genStep as GenStep_ScatterThings).thingDef == geyserDef);
 			if (genStepDef == null) {
 				logger.Error(string.Format("Cannot reroll geysers: map generator {0} does not have a geyser GenStep", state.UsedMapGenerator));
@@ -116,7 +116,7 @@ namespace MapReroll {
 
 		private void DrawGeyserArrows(List<TimedGeyserArrow> arrows) {
 			// do not draw on world map
-			if (Find.World == null || Find.VisibleMap == null || Find.World.renderer == null || Find.World.renderer.wantedMode != WorldRenderMode.None) return;
+			if (Find.World == null || Find.CurrentMap == null || Find.World.renderer == null || Find.World.renderer.wantedMode != WorldRenderMode.None) return;
 			for (int i = 0; i < arrows.Count; i++) {
 				var arrow = arrows[i];
 				GenDraw.DrawArrowPointingAt(arrow.ArrowTarget);
@@ -125,7 +125,7 @@ namespace MapReroll {
 		}
 
 		private void DrawSteamEffects(List<TimedSteamEffect> effects) {
-			if (Find.World == null || Find.VisibleMap == null) return;
+			if (Find.World == null || Find.CurrentMap == null) return;
 			for (int i = 0; i < effects.Count; i++) {
 				var effect = effects[i];
 				MoteMaker.ThrowAirPuffUp(effect.Geyser.TrueCenter(), effect.Geyser.Map);
