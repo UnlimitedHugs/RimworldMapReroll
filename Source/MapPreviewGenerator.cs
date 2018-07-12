@@ -166,8 +166,7 @@ namespace MapReroll {
 				var riverMaker = ReflectionCache.GenStepTerrain_GenerateRiver.Invoke(terrainGenstep, new object[] {grids.Map});
 				var beachTerrainAtDelegate = AlternateBeachTerrainAtDelegate ??
 											(BeachMakerBeachTerrainAt)Delegate.CreateDelegate(typeof(BeachMakerBeachTerrainAt), null, ReflectionCache.BeachMaker_BeachTerrainAt);
-				var riverTerrainAtDelegate = riverMaker == null
-					? null
+				var riverTerrainAtDelegate = riverMaker == null ? null
 					: (RiverMakerTerrainAt)Delegate.CreateDelegate(typeof(RiverMakerTerrainAt), riverMaker, ReflectionCache.RiverMaker_TerrainAt);
 				ReflectionCache.BeachMaker_Init.Invoke(null, new object[] {grids.Map});
 
@@ -175,11 +174,10 @@ namespace MapReroll {
 				foreach (var cell in mapBounds) {
 					const float rockCutoff = .7f;
 					var terrainDef = TerrainFrom(cell, grids.Map, grids.ElevationGrid[cell], grids.FertilityGrid[cell], riverTerrainAtDelegate, beachTerrainAtDelegate, false);
-					Color pixelColor;
-					if (!terrainColors.TryGetValue(terrainDef.defName, out pixelColor)) {
+					if (!terrainColors.TryGetValue(terrainDef.defName, out Color pixelColor)) {
 						pixelColor = missingTerrainColor;
 					}
-					if (grids.ElevationGrid[cell] > rockCutoff) {
+					if (grids.ElevationGrid[cell] > rockCutoff && !terrainDef.IsRiver) {
 						pixelColor = solidStoneColor;
 						if (grids.CavesGrid[cell] > 0) {
 							pixelColor = caveColor;
@@ -206,45 +204,42 @@ namespace MapReroll {
 		/// Identifies the terrain def that would have been used at the given map location.
 		/// Swiped from GenStep_Terrain. Extracted for performance reasons.
 		/// </summary>
-		private static TerrainDef TerrainFrom(IntVec3 c, Map map, float elevation, float fertility, RiverMakerTerrainAt riverTerrainAt, BeachMakerBeachTerrainAt beachTerrainAt,
-			bool preferSolid) {
-			TerrainDef riverTerrain = null;
+		private static TerrainDef TerrainFrom(IntVec3 c, Map map, float elevation, float fertility, RiverMakerTerrainAt riverTerrainAt, BeachMakerBeachTerrainAt beachTerrainAt, bool preferSolid) {
+			TerrainDef terrainDef = null;
 			if (riverTerrainAt != null) {
-				riverTerrain = riverTerrainAt(c, false);
+				terrainDef = riverTerrainAt(c, true);
 			}
-			if (riverTerrain == null && preferSolid) {
-				return GenStep_RocksFromGrid.RockDefAt(c).building.naturalTerrain;
-			}
-			var beachTerrain = beachTerrainAt(c, map.Biome);
-			if (beachTerrain == TerrainDefOf.WaterOceanDeep) {
-				return beachTerrain;
-			}
-			if (riverTerrain == TerrainDefOf.WaterMovingShallow || riverTerrain == TerrainDefOf.WaterMovingChestDeep) {
-				return riverTerrain;
-			}
-			if (beachTerrain != null) {
-				return beachTerrain;
-			}
-			if (riverTerrain != null) {
-				return riverTerrain;
-			}
-			for (int i = 0; i < map.Biome.terrainPatchMakers.Count; i++) {
-				beachTerrain = map.Biome.terrainPatchMakers[i].TerrainAt(c, map, fertility);
-				if (beachTerrain != null) {
-					return beachTerrain;
+			TerrainDef result;
+			if (terrainDef == null && preferSolid) {
+				result = GenStep_RocksFromGrid.RockDefAt(c).building.naturalTerrain;
+			} else {
+				var terrain = beachTerrainAt(c, map.Biome);
+				if (terrain == TerrainDefOf.WaterOceanDeep) {
+					result = terrain;
+				} else if (terrainDef != null && terrainDef.IsRiver) {
+					result = terrainDef;
+				} else if (terrain != null) {
+					result = terrain;
+				} else if (terrainDef != null) {
+					result = terrainDef;
+				} else {
+					for (int i = 0; i < map.Biome.terrainPatchMakers.Count; i++) {
+						terrain = map.Biome.terrainPatchMakers[i].TerrainAt(c, map, fertility);
+						if (terrain != null) {
+							return terrain;
+						}
+					}
+					if (elevation > 0.55f && elevation < 0.61f) {
+						result = TerrainDefOf.Gravel;
+					} else if (elevation >= 0.61f) {
+						result = GenStep_RocksFromGrid.RockDefAt(c).building.naturalTerrain;
+					} else {
+						terrain = TerrainThreshold.TerrainAtValue(map.Biome.terrainsByFertility, fertility);
+						result = terrain ?? TerrainDefOf.Sand;
+					}
 				}
 			}
-			if (elevation > 0.55f && elevation < 0.61f) {
-				return TerrainDefOf.Gravel;
-			}
-			if (elevation >= 0.61f) {
-				return GenStep_RocksFromGrid.RockDefAt(c).building.naturalTerrain;
-			}
-			beachTerrain = TerrainThreshold.TerrainAtValue(map.Biome.terrainsByFertility, fertility);
-			if (beachTerrain != null) {
-				return beachTerrain;
-			}
-			return TerrainDefOf.Sand;
+			return result;
 		}
 
 		/// <summary>
