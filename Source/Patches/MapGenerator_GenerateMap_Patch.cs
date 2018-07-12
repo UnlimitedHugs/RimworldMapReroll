@@ -29,6 +29,7 @@ namespace MapReroll.Patches {
 			var expectedMethod = AccessTools.Method(typeof(MapComponentUtility), "MapGenerated");
 			if(expectedMethod == null) throw new Exception("Failed to reflect required method");
 			foreach (var inst in instructions) {
+				yield return inst;
 				if (!patched && inst.opcode == OpCodes.Call && expectedMethod.Equals(inst.operand)) {
 					// push Map
 					yield return new CodeInstruction(OpCodes.Ldloc_2);
@@ -38,7 +39,6 @@ namespace MapReroll.Patches {
 					yield return new CodeInstruction(OpCodes.Call, ((Action<Map, MapGeneratorDef>)OnMapGenerated).Method);
 					patched = true;
 				}
-				yield return inst;
 			}
 		}
 
