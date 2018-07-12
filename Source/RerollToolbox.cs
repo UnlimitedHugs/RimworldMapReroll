@@ -124,7 +124,7 @@ namespace MapReroll {
 			var state = GetStateForMap(onMap);
 			var knownOrInvalidThingIds = new HashSet<int>(state.PlayerAddedThingIds.Union(state.ScenarioGeneratedThingIds));
 			var nonColonistThings = ThingOwnerUtility.GetAllThingsRecursively(owner, false)
-				.Where(t => !(t is Pawn) && !knownOrInvalidThingIds.Contains(t.thingIDNumber));
+				.Where(t => !(t is Pawn) && !(t is Building) && !knownOrInvalidThingIds.Contains(t.thingIDNumber));
 			//Logger.Message("Player added things to map: " + nonColonistThings.ListElements());
 			state.PlayerAddedThingIds.AddRange(nonColonistThings.Select(t => t.thingIDNumber));
 		}
