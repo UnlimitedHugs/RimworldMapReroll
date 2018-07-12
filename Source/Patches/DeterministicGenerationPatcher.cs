@@ -4,6 +4,9 @@ using Harmony;
 using Verse;
 
 namespace MapReroll.Patches {
+	/// <summary>
+	/// A tool to apply multiple patches to make some map feature generators independent of their execution order
+	/// </summary>
 	public static class DeterministicGenerationPatcher {
 		private static bool generatorSeedPushed;
 

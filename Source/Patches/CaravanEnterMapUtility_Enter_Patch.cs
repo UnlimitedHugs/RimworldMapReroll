@@ -4,6 +4,9 @@ using RimWorld.Planet;
 using Verse;
 
 namespace MapReroll.Patches {
+	/// <summary>
+	/// Ensures that things delivered by caravan are registered to be carried over during a reroll
+	/// </summary>
 	[HarmonyPatch(typeof(CaravanEnterMapUtility))]
 	[HarmonyPatch("Enter")]
 	[HarmonyPatch(new []{typeof(Caravan), typeof(Map), typeof(Func<Pawn, IntVec3>), typeof(CaravanDropInventoryMode), typeof(bool)})]
