@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using HugsLib;
+using MapReroll.Patches;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
@@ -61,6 +62,8 @@ namespace MapReroll {
 
 				var mapSeed = seed ?? GetNextRerollSeed(CurrentMapSeed(oldMapState));
 
+				MapRerollController.HasCavesOverride.OverrideEnabled = true;
+				MapRerollController.HasCavesOverride.HasCaves = Find.World.HasCaves(originalTile);
 				var newMap = GenerateNewMapWithSeed(newParent, Find.World.info.initialMapSize, mapSeed);
 				
 				var newMapState = GetStateForMap(newMap);
@@ -83,8 +86,12 @@ namespace MapReroll {
 
 				DiscardFactionBase(oldParent);
 
+				MapRerollController.HasCavesOverride.OverrideEnabled = false;
 				LoadingMessages.RestoreVanillaLoadingMessage();
-			}, "GeneratingMap", true, GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap);
+			}, "GeneratingMap", true, e => {
+				MapRerollController.HasCavesOverride.OverrideEnabled = false;
+				GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap(e);
+			});
 		}
 
 		public static string CurrentMapSeed(RerollMapState mapState) {

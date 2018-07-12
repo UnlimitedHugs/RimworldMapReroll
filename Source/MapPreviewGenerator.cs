@@ -153,9 +153,12 @@ namespace MapReroll {
 
 		private static void GeneratePreviewForSeed(string seed, int mapTile, int mapSize, bool revealCaves, ThreadableTexture texture) {
 			var prevSeed = Find.World.info.seedString;
-			Find.World.info.seedString = seed;
 
 			try {
+				MapRerollController.HasCavesOverride.HasCaves = Find.World.HasCaves(mapTile);
+				MapRerollController.HasCavesOverride.OverrideEnabled = true;
+				Find.World.info.seedString = seed;
+
 				MapRerollController.RandStateStackCheckingPaused = true;
 				var grids = GenerateMapGrids(mapTile, mapSize, revealCaves);
 				DeepProfiler.Start("generateMapPreviewTexture");
@@ -197,6 +200,7 @@ namespace MapReroll {
 				Find.World.info.seedString = prevSeed;
 				ReflectionCache.BeachMaker_Cleanup.Invoke(null, null);
 				MapRerollController.RandStateStackCheckingPaused = false;
+				MapRerollController.HasCavesOverride.OverrideEnabled = false;
 			}
 		}
 

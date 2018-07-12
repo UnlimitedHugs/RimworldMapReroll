@@ -67,6 +67,7 @@
     <Compile Include="Source\Patches\DeterministicGenerationPatcher.cs" />
     <Compile Include="Source\Patches\MapGenerator_GenerateMap_Patch.cs" />
     <Compile Include="Source\Patches\Rand_EnsureStateStackEmpty_Patch.cs" />
+    <Compile Include="Source\Patches\World_HasCaves_Patch.cs" />
     <Compile Include="Source\Promises\EnumerableExt.cs" />
     <Compile Include="Source\Promises\IPromise.cs" />
     <Compile Include="Source\Promises\Promise.cs" />

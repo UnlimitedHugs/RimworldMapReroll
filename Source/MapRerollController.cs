@@ -28,6 +28,8 @@ namespace MapReroll {
 
 		// prevents the main thread from messing with the Rand seeding done in the preview thread
 		public static bool RandStateStackCheckingPaused { get; set; }
+		// ensures cave presence is consistent across rerolls
+		public static readonly HasCavesOverride HasCavesOverride = new HasCavesOverride();
 
 		public override string ModIdentifier {
 			get { return "MapReroll"; }
@@ -211,5 +213,10 @@ namespace MapReroll {
 			}
 			return false;
 		}
+	}
+
+	public class HasCavesOverride {
+		public bool OverrideEnabled { get; set; }
+		public bool HasCaves { get; set; }
 	}
 }
