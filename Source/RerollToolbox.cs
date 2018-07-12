@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using HugsLib;
-using MapReroll.Patches;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
 using Verse;
+using Verse.AI;
 using Verse.Sound;
 
 namespace MapReroll {
@@ -78,11 +78,12 @@ namespace MapReroll {
 					Find.Scenario.PostGameStart();
 					Current.Game.InitData = null;
 				}
-				
+
+				var viableCenter = FindViableDropSpotCenter(newMap);
 				if (!isOnStartingTile) {
-					SpawnPawnsOnMap(playerPawns, newMap);
+					SpawnPawnsOnMap(playerPawns, newMap, viableCenter);
 				}
-				SpawnThingsOnMap(nonGeneratedThings, newMap);
+				SpawnThingsOnMap(nonGeneratedThings, newMap, viableCenter);
 
 				DiscardFactionBase(oldParent);
 
@@ -192,10 +193,6 @@ namespace MapReroll {
 					state.NumPreviewPagesPurchased = desiredPreviewsPage+1;
 				}
 			}
-		}
-
-		public static bool CanAffordOperation(PaidOperationType type) {
-			return GetOperationCost(type) <= GetStateForMap().ResourceBalance;
 		}
 
 		public static float GetOperationCost(PaidOperationType type, int desiredPreviewsPage = 0) {
@@ -314,13 +311,12 @@ namespace MapReroll {
 			}
 		}
 
-		private static void SpawnPawnsOnMap(IEnumerable<Pawn> pawns, Map map) {
+		private static void SpawnPawnsOnMap(IEnumerable<Pawn> pawns, Map map, IntVec3 dropCenter) {
 			foreach (var pawn in pawns) {
 				if (pawn.Destroyed) continue;
-				IntVec3 pos;
-				if (!DropCellFinder.TryFindDropSpotNear(map.Center, map, out pos, false, false, false)) {
-					pos = map.Center;
-					MapRerollController.Instance.Logger.Error("Could not find drop spot for pawn {0} on map {1}", pawn, map);
+				if (!DropCellFinder.TryFindDropSpotNear(dropCenter, map, out IntVec3 pos, false, false, false)) {
+					pos = dropCenter;
+					MapRerollController.Instance.Logger.Warning("Could not find drop spot for pawn {0} on map {1}", pawn, map);
 				}
 				GenSpawn.Spawn(pawn, pos, map);
 			}
@@ -331,18 +327,41 @@ namespace MapReroll {
 			return map.listerThings.AllThings.Where(t => idSet.Contains(t.thingIDNumber));
 		}
 
-		private static void SpawnThingsOnMap(IEnumerable<Thing> things, Map map) {
+		private static void SpawnThingsOnMap(IEnumerable<Thing> things, Map map, IntVec3 dropCenter) {
 			foreach (var thing in things) {
 				if (thing.Destroyed || thing.Spawned) continue;
-				IntVec3 pos;
-				if (!DropCellFinder.TryFindDropSpotNear(map.Center, map, out pos, false, false, false)) {
-					pos = map.Center;
+				if (!DropCellFinder.TryFindDropSpotNear(dropCenter, map, out IntVec3 pos, false, false, false)) {
+					pos = dropCenter;
 				}
 				if (!GenPlace.TryPlaceThing(thing, pos, map, ThingPlaceMode.Near)) {
 					GenSpawn.Spawn(thing, pos, map);
-					MapRerollController.Instance.Logger.Error("Could not find drop spot for thing {0} on map {1}", thing, map);
+					MapRerollController.Instance.Logger.Warning("Could not find drop spot for thing {0} on map {1}", thing, map);
 				}
 			}
+		}
+
+		private static IntVec3 FindViableDropSpotCenter(Map map) {
+			const int viableCenterSearchRadius = 50;
+			var center = map.Center;
+			foreach (var c in GenRadial.RadialCellsAround(center, viableCenterSearchRadius, true)) {
+				if (DropCellFinder.IsGoodDropSpot(c, map, false, false)) {
+					return c;
+				}
+			}
+			return center;
+		}
+
+		private static bool TryFindDropSpotNear(IntVec3 center, Map map, out IntVec3 result) {
+			bool validator(IntVec3 c) => DropCellFinder.IsGoodDropSpot(c, map, false, false) && map.reachability.CanReach(center, c, PathEndMode.OnCell, TraverseMode.PassDoors, Danger.Deadly);
+			int squareRadius = 5;
+			while (!CellFinder.TryFindRandomCellNear(center, map, squareRadius, validator, out result)) {
+				squareRadius += 3;
+				if (squareRadius > 16) {
+					result = center;
+					return false;
+				}
+			}
+			return true;
 		}
 
 		private static GameInitData MakeInitData(RerollWorldState state, Map sourceMap) {
