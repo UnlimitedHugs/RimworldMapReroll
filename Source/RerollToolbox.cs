@@ -50,6 +50,7 @@ namespace MapReroll {
 				DespawnThings(playerPawns.OfType<Thing>(), oldMap);
 				DespawnThings(nonGeneratedThings, oldMap);
 				DiscardFactionBase(oldParent);
+				StripMap(oldMap);
 			}, "GeneratingMap", false, GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap);
 
 			// generate new map in work thread
@@ -369,12 +370,95 @@ namespace MapReroll {
 			return mapParent.Tile == state.StartingTile;
 		}
 
+		// clears references to map components so that they may be garbage-collected even if the map itself isn't
+		private static void StripMap(Map map) {
+			map.spawnedThings = null;
+			map.cellIndices = null;
+			map.listerThings = null;
+			map.listerBuildings = null;
+			map.mapPawns = null;
+			map.dynamicDrawManager = null;
+			map.mapDrawer = null;
+			map.tooltipGiverList = null;
+			map.pawnDestinationReservationManager = null;
+			map.reservationManager = null;
+			map.physicalInteractionReservationManager = null;
+			map.designationManager = null;
+			map.lordManager = null;
+			map.debugDrawer = null;
+			map.passingShipManager = null;
+			map.haulDestinationManager = null;
+			map.gameConditionManager = null;
+			map.weatherManager = null;
+			map.zoneManager = null;
+			map.resourceCounter = null;
+			map.mapTemperature = null;
+			map.temperatureCache = null;
+			map.areaManager = null;
+			map.attackTargetsCache = null;
+			map.attackTargetReservationManager = null;
+			map.lordsStarter = null;
+			map.thingGrid = null;
+			map.coverGrid = null;
+			map.edificeGrid = null;
+			map.blueprintGrid = null;
+			map.fogGrid = null;
+			map.glowGrid = null;
+			map.regionGrid = null;
+			map.terrainGrid = null;
+			map.pathGrid = null;
+			map.roofGrid = null;
+			map.fertilityGrid = null;
+			map.snowGrid = null;
+			map.deepResourceGrid = null;
+			map.exitMapGrid = null;
+			map.linkGrid = null;
+			map.glowFlooder = null;
+			map.powerNetManager = null;
+			map.powerNetGrid = null;
+			map.regionMaker = null;
+			map.pathFinder = null;
+			map.pawnPathPool = null;
+			map.regionAndRoomUpdater = null;
+			map.regionLinkDatabase = null;
+			map.moteCounter = null;
+			map.gatherSpotLister = null;
+			map.windManager = null;
+			map.listerBuildingsRepairable = null;
+			map.listerHaulables = null;
+			map.listerMergeables = null;
+			map.listerFilthInHomeArea = null;
+			map.reachability = null;
+			map.itemAvailability = null;
+			map.autoBuildRoofAreaSetter = null;
+			map.roofCollapseBufferResolver = null;
+			map.roofCollapseBuffer = null;
+			map.wildAnimalSpawner = null;
+			map.wildPlantSpawner = null;
+			map.steadyEnvironmentEffects = null;
+			map.skyManager = null;
+			map.overlayDrawer = null;
+			map.floodFiller = null;
+			map.weatherDecider = null;
+			map.fireWatcher = null;
+			map.dangerWatcher = null;
+			map.damageWatcher = null;
+			map.strengthWatcher = null;
+			map.wealthWatcher = null;
+			map.regionDirtyer = null;
+			map.cellsInRandomOrder = null;
+			map.rememberedCameraPos = null;
+			map.mineStrikeManager = null;
+			map.storyState = null;
+			map.retainedCaravanData = null;
+			map.components.Clear();
+		}
+
 		private static void DiscardFactionBase(MapParent mapParent) {
 			Current.Game.DeinitAndRemoveMap(mapParent.Map);
 			Find.WorldObjects.Remove(mapParent);
-			GC.Collect();
 		}
-
+		
 		private static void SwitchToMap(Map newMap) {
 			Current.Game.CurrentMap = newMap;
 			Find.World.renderer.wantedMode = WorldRenderMode.None;
