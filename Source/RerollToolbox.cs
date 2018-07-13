@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using HugsLib;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
 using Verse;
-using Verse.AI;
 using Verse.Sound;
 
 namespace MapReroll {
@@ -25,19 +23,20 @@ namespace MapReroll {
 				return;
 			}
 			LoadingMessages.SetCustomLoadingMessage(MapRerollController.Instance.LoadingMessagesSetting);
+			var oldParent = (MapParent)oldMap.ParentHolder;
+			var isOnStartingTile = MapIsOnStartingTile(oldMap, MapRerollController.Instance.WorldState);
+			var originalTile = MoveMapParentSomewhereElse(oldParent);
+
+			if (isOnStartingTile) Current.Game.InitData = MakeInitData(MapRerollController.Instance.WorldState, oldMap);
+
+			var oldMapState = GetStateForMap(oldMap);
+			var playerPawns = GetAllPlayerPawnsOnMap(oldMap); // includes animals
+			var colonists = GetAllPlayerPawnsOnMap(oldMap).Where(p => p.IsColonist).ToList();
+			IEnumerable<Thing> nonGeneratedThings = ResolveThingsFromIds(oldMap, oldMapState.PlayerAddedThingIds).ToList();
+
+			// discard the old map in main thread
 			LongEventHandler.QueueLongEvent(() => {
-				var oldParent = (MapParent)oldMap.ParentHolder;
-				var isOnStartingTile = MapIsOnStartingTile(oldMap, MapRerollController.Instance.WorldState);
-				var originalTile = MoveMapParentSomewhereElse(oldParent);
-
-				if (isOnStartingTile) Current.Game.InitData = MakeInitData(MapRerollController.Instance.WorldState, oldMap);
-
-				var oldMapState = GetStateForMap(oldMap);
-				var playerPawns = GetAllPlayerPawnsOnMap(oldMap); // includes animals
-				var colonists = GetAllPlayerPawnsOnMap(oldMap).Where(p => p.IsColonist).ToList();
-				IEnumerable<Thing> nonGeneratedThings = ResolveThingsFromIds(oldMap, oldMapState.PlayerAddedThingIds).ToList();
-				//Logger.Message("Non generated things: " + nonGeneratedThings.ListElements());
-
+				// wipe world things generated with map to prevent player from sneaking out items, then rerolling
 				if (oldMapState.ScenarioGeneratedThingIds.Count > 0 && MapRerollController.Instance.AntiCheeseSetting) {
 					try {
 						ClearRelationsWithPawns(colonists, oldMapState.ScenarioGeneratedThingIds);
@@ -45,13 +44,16 @@ namespace MapReroll {
 					} catch (Exception e) {
 						// unknown mod conflict is afoot: https://gist.github.com/HugsLibRecordKeeper/f9278475f338b5d564bf7b9f7f6642d7
 						// since this is a non-critical section we can just suppress the error for now
-						MapRerollController.Instance.Logger.Warning("Caught exception while trying to destroy world things from discarded map: "+e);
+						MapRerollController.Instance.Logger.Warning("Caught exception while trying to destroy world things from discarded map: " + e);
 					}
 				}
-
 				DespawnThings(playerPawns.OfType<Thing>(), oldMap);
 				DespawnThings(nonGeneratedThings, oldMap);
+				DiscardFactionBase(oldParent);
+			}, "GeneratingMap", false, GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap);
 
+			// generate new map in work thread
+			LongEventHandler.QueueLongEvent(() => {
 				ResetIncidentScenarioParts(Find.Scenario);
 
 				var newParent = PlaceNewMapParent(originalTile);
@@ -84,8 +86,6 @@ namespace MapReroll {
 					SpawnPawnsOnMap(playerPawns, newMap, viableCenter);
 				}
 				SpawnThingsOnMap(nonGeneratedThings, newMap, viableCenter);
-
-				DiscardFactionBase(oldParent);
 
 				MapRerollController.HasCavesOverride.OverrideEnabled = false;
 				LoadingMessages.RestoreVanillaLoadingMessage();
@@ -351,19 +351,6 @@ namespace MapReroll {
 			return center;
 		}
 
-		private static bool TryFindDropSpotNear(IntVec3 center, Map map, out IntVec3 result) {
-			bool validator(IntVec3 c) => DropCellFinder.IsGoodDropSpot(c, map, false, false) && map.reachability.CanReach(center, c, PathEndMode.OnCell, TraverseMode.PassDoors, Danger.Deadly);
-			int squareRadius = 5;
-			while (!CellFinder.TryFindRandomCellNear(center, map, squareRadius, validator, out result)) {
-				squareRadius += 3;
-				if (squareRadius > 16) {
-					result = center;
-					return false;
-				}
-			}
-			return true;
-		}
-
 		private static GameInitData MakeInitData(RerollWorldState state, Map sourceMap) {
 			return new GameInitData {
 				permadeath = Find.GameInfo.permadeathMode,
@@ -383,15 +370,14 @@ namespace MapReroll {
 		}
 
 		private static void DiscardFactionBase(MapParent mapParent) {
-			// run from main thread due to Unity constraints
-			HugsLibController.Instance.DoLater.DoNextUpdate(() => {
-				Current.Game.DeinitAndRemoveMap(mapParent.Map);
-				Find.WorldObjects.Remove(mapParent);
-			});
+			Current.Game.DeinitAndRemoveMap(mapParent.Map);
+			Find.WorldObjects.Remove(mapParent);
+			GC.Collect();
 		}
 
 		private static void SwitchToMap(Map newMap) {
 			Current.Game.CurrentMap = newMap;
+			Find.World.renderer.wantedMode = WorldRenderMode.None;
 		}
 
 		private static Map GenerateNewMapWithSeed(MapParent mapParent, IntVec3 size, string seed) {
