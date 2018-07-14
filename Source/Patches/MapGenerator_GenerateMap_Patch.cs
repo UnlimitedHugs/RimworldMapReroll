@@ -12,7 +12,7 @@ namespace MapReroll.Patches {
 	/// </summary>
 	[HarmonyPatch(typeof(MapGenerator))]
 	[HarmonyPatch("GenerateMap")]
-	[HarmonyPatch(new[]{typeof(IntVec3), typeof(MapParent), typeof(MapGeneratorDef), typeof(IEnumerable<GenStepDef>), typeof(Action<Map>)})]
+	[HarmonyPatch(new[]{typeof(IntVec3), typeof(MapParent), typeof(MapGeneratorDef), typeof(IEnumerable<GenStepWithParams>), typeof(Action<Map>)})]
 	internal static class MapGenerator_GenerateMap_Patch {
 		private static bool patched;
 

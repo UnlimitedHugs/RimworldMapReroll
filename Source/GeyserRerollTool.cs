@@ -58,7 +58,7 @@ namespace MapReroll {
 			activeSteamEffects.Clear();
 			var geysersOnMap = map.listerThings.AllThings.Where(t => t.def == geyserDef);
 			var oldGeysers = new HashSet<Thing>(geysersOnMap);
-			genStepDef.genStep.Generate(map);
+			genStepDef.genStep.Generate(map, new GenStepParams());
 			var newGeysers = map.listerThings.AllThings.Where(t => t.def == geyserDef).Except(oldGeysers);
 			BeginGeyserSpawning(oldGeysers, newGeysers, map);
 		}

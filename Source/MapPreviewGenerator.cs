@@ -286,12 +286,12 @@ namespace MapReroll {
 
 				var elevationFertilityGenstep = new GenStep_ElevationFertility();
 				Rand.Seed = Gen.HashCombineInt(mapSeed, elevationFertilityGenstep.SeedPart);
-				elevationFertilityGenstep.Generate(map);
+				elevationFertilityGenstep.Generate(map, new GenStepParams());
 
 				if (revealCaves) {
 					var cavesGenstep = new GenStep_Caves();
 					Rand.Seed = Gen.HashCombineInt(mapSeed, cavesGenstep.SeedPart);
-					cavesGenstep.Generate(map);
+					cavesGenstep.Generate(map, new GenStepParams());
 				}
 
 				var result = new MapGridSet(MapGenerator.Elevation, MapGenerator.Fertility, MapGenerator.Caves, map);
