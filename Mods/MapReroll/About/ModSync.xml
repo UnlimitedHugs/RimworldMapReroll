@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ModSyncNinjaData>
+  <ID>805c47d2-675e-44f1-b0c5-aaaa5ca9356b</ID>
+  <ModName>Map Reroll</ModName>
+  <Version>2.2.3</Version>
+  <SaveBreaking>False</SaveBreaking>
+  <Host name="Github">
+    <Owner>UnlimitedHugs</Owner>
+    <Project>RimworldMapReroll</Project>
+    <AboutDir>Mods/MapReroll/About</AboutDir>
+    <DownloadFrom>ModSyncReleases</DownloadFrom>
+    <Branch>master</Branch>
+  </Host>
+</ModSyncNinjaData>
