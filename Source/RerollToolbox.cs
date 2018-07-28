@@ -315,7 +315,7 @@ namespace MapReroll {
 		private static void SpawnPawnsOnMap(IEnumerable<Pawn> pawns, Map map, IntVec3 dropCenter) {
 			foreach (var pawn in pawns) {
 				if (pawn.Destroyed) continue;
-				if (!DropCellFinder.TryFindDropSpotNear(dropCenter, map, out IntVec3 pos, false, false, false)) {
+				if (!DropCellFinder.TryFindDropSpotNear(dropCenter, map, out IntVec3 pos, false, false)) {
 					pos = dropCenter;
 					MapRerollController.Instance.Logger.Warning("Could not find drop spot for pawn {0} on map {1}", pawn, map);
 				}
@@ -331,7 +331,7 @@ namespace MapReroll {
 		private static void SpawnThingsOnMap(IEnumerable<Thing> things, Map map, IntVec3 dropCenter) {
 			foreach (var thing in things) {
 				if (thing.Destroyed || thing.Spawned) continue;
-				if (!DropCellFinder.TryFindDropSpotNear(dropCenter, map, out IntVec3 pos, false, false, false)) {
+				if (!DropCellFinder.TryFindDropSpotNear(dropCenter, map, out IntVec3 pos, false, false)) {
 					pos = dropCenter;
 				}
 				if (!GenPlace.TryPlaceThing(thing, pos, map, ThingPlaceMode.Near)) {
