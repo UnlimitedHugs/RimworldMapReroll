@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using HugsLib;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
@@ -82,11 +83,18 @@ namespace MapReroll {
 					Current.Game.InitData = null;
 				}
 
-				var viableCenter = FindViableDropSpotCenter(newMap);
-				if (!isOnStartingTile) {
-					SpawnPawnsOnMap(playerPawns, newMap, viableCenter);
-				}
-				SpawnThingsOnMap(nonGeneratedThings, newMap, viableCenter);
+				// spawn things in main thread to ensure all map sections have finished generating
+				HugsLibController.Instance.DoLater.DoNextUpdate(() => {
+					try {
+						var viableCenter = FindViableDropSpotCenter(newMap);
+						if (!isOnStartingTile) {
+							SpawnPawnsOnMap(playerPawns, newMap, viableCenter);
+						}
+						SpawnThingsOnMap(nonGeneratedThings, newMap, viableCenter);
+					} catch (Exception e) {
+						GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap(e);
+					}
+				});
 
 				MapRerollController.HasCavesOverride.OverrideEnabled = false;
 				LoadingMessages.RestoreVanillaLoadingMessage();
