@@ -40,18 +40,18 @@ namespace MapReroll.Interpolation {
 		}
 
 		public void ExposeData() {
-			Scribe_Values.Look(ref value, "value", 0f);
+			Scribe_Values.Look(ref value, "value");
 			Scribe_Values.Look(ref finished, "finished", true);
 			Scribe_Values.Look(ref respectTimeScale, "respectTimeScale", true);
-			Scribe_Values.Look(ref elapsedTime, "elapsedTime", 0);
-			Scribe_Values.Look(ref initialValue, "initialValue", 0);
-			Scribe_Values.Look(ref targetValue, "targetValue", 0);
-			Scribe_Values.Look(ref duration, "duration", 0);
-			Scribe_Values.Look(ref duration, "duration", 0);
+			Scribe_Values.Look(ref elapsedTime, "elapsedTime");
+			Scribe_Values.Look(ref initialValue, "initialValue");
+			Scribe_Values.Look(ref targetValue, "targetValue");
+			Scribe_Values.Look(ref duration, "duration");
+			Scribe_Values.Look(ref duration, "duration");
 			if (Scribe.mode == LoadSaveMode.Saving) {
-				curveName = curve != null ? curve.Method.Name : null;
+				curveName = curve?.Method.Name;
 			}
-			Scribe_Values.Look(ref curveName, "curveName", null);
+			Scribe_Values.Look(ref curveName, "curveName");
 			if (Scribe.mode == LoadSaveMode.LoadingVars) {
 				if (!curveName.NullOrEmpty()) {
 					var curveMethod = typeof(InterpolationCurves).GetMethod(curveName, HugsLibUtility.AllBindingFlags);
@@ -83,7 +83,7 @@ namespace MapReroll.Interpolation {
 				elapsedTime = duration;
 				value = targetValue;
 				finished = true;
-				if (callback != null) callback(this, value, duration, curve);
+				callback?.Invoke(this, value, duration, curve);
 			} else {
 				value = initialValue + curve(elapsedTime / duration) * (targetValue - initialValue);
 			}

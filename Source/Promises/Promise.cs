@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+// ReSharper disable All
 
 // Swiped from https://github.com/Real-Serious-Games/C-Sharp-Promise
 namespace MapReroll.Promises {

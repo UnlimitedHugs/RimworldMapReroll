@@ -16,7 +16,7 @@ namespace MapReroll.UI {
 
 		public Dialog_RerollControls() {
 			layer = WindowLayer.SubSuper;
-			closeOnEscapeKey = true;
+			closeOnCancel = true;
 			doCloseButton = false;
 			doCloseX = false;
 			absorbInputAroundWindow = false;
@@ -40,7 +40,7 @@ namespace MapReroll.UI {
 		}
 
 		public override void PreOpen() {
-			var map = Find.VisibleMap;
+			var map = Find.CurrentMap;
 			var resourceBalance = map == null ? 0f : RerollToolbox.GetStateForMap(map).ResourceBalance;
 			balanceWidget = new Widget_ResourceBalance(resourceBalance);
 		}
@@ -52,7 +52,7 @@ namespace MapReroll.UI {
 		public override void DoWindowContents(Rect inRect) {
 			// close on world map, on committed maps
 			var mapState = RerollToolbox.GetStateForMap();
-			if (Find.World.renderer.wantedMode != WorldRenderMode.None || Find.VisibleMap == null || mapState.MapCommitted) {
+			if (Find.World.renderer.wantedMode != WorldRenderMode.None || Find.CurrentMap == null || mapState.MapCommitted) {
 				Close();
 				return;
 			}

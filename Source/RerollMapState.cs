@@ -25,11 +25,11 @@ namespace MapReroll {
 		}
 
 		public void ExposeData() {
-			Scribe_Values.Look(ref RerollGenerated, "rerollGenerated", false);
-			Scribe_Values.Look(ref RerollSeed, "rerollSeed", null);
-			Scribe_Values.Look(ref ResourceBalance, "resourceBalance", 0f);
-			Scribe_Values.Look(ref NumPreviewPagesPurchased, "pagesPurchased", 0);
-			Scribe_Values.Look(ref MapCommitted, "committed", false);
+			Scribe_Values.Look(ref RerollGenerated, "rerollGenerated");
+			Scribe_Values.Look(ref RerollSeed, "rerollSeed");
+			Scribe_Values.Look(ref ResourceBalance, "resourceBalance");
+			Scribe_Values.Look(ref NumPreviewPagesPurchased, "pagesPurchased");
+			Scribe_Values.Look(ref MapCommitted, "committed");
 			Scribe_Defs.Look(ref UsedMapGenerator, "usedMapGenerator");
 			Scribe_Collections.Look(ref _scenarioGeneratedThingIds, "scenarioGeneratedThingIds", LookMode.Value);
 			Scribe_Collections.Look(ref _playerAddedThingIds, "playerAddedThingIds", LookMode.Value);

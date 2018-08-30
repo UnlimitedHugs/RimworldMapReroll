@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Reflection;
 using Harmony;
-using HugsLib.Utils;
 using Verse;
 
 namespace MapReroll.Patches {
-	public class DeterministicGenerationPatcher {
+	/// <summary>
+	/// A tool to apply multiple patches to make some map feature generators independent of their execution order
+	/// </summary>
+	public static class DeterministicGenerationPatcher {
 		private static bool generatorSeedPushed;
 
 		public static void InstrumentMethodForDeterministicGeneration(MethodInfo method, MethodInfo prefix, HarmonyInstance harmony) {
 			if (method == null) {
-				MapRerollController.Instance.Logger.Error(string.Format("Cannot instrument null method with prefix {0}: {1}", prefix, Environment.StackTrace));
+				MapRerollController.Instance.Logger.Error($"Cannot instrument null method with prefix {prefix}: {Environment.StackTrace}");
 				return;
 			}
 			harmony.Patch(method, new HarmonyMethod(prefix), new HarmonyMethod(((Action)PopDeterministicRandState).Method));

@@ -17,3 +17,4 @@ Version.h
 Version.cpp
 build.js
 nunit_random_seed.tmp
+*.DotSettings

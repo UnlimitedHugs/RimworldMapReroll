@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using HugsLib;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
@@ -17,25 +18,26 @@ namespace MapReroll {
 		private const sbyte ThingDiscardedState = -3;
 
 		public static void DoMapReroll(string seed = null) {
-			var oldMap = Find.VisibleMap;
+			var oldMap = Find.CurrentMap;
 			if (oldMap == null) {
 				MapRerollController.Instance.Logger.Error("No visible map- cannot reroll");
 				return;
 			}
 			LoadingMessages.SetCustomLoadingMessage(MapRerollController.Instance.LoadingMessagesSetting);
+			var oldParent = (MapParent)oldMap.ParentHolder;
+			var isOnStartingTile = MapIsOnStartingTile(oldMap, MapRerollController.Instance.WorldState);
+			var originalTile = MoveMapParentSomewhereElse(oldParent);
+
+			if (isOnStartingTile) Current.Game.InitData = MakeInitData(MapRerollController.Instance.WorldState, oldMap);
+
+			var oldMapState = GetStateForMap(oldMap);
+			var playerPawns = GetAllPlayerPawnsOnMap(oldMap); // includes animals
+			var colonists = GetAllPlayerPawnsOnMap(oldMap).Where(p => p.IsColonist).ToList();
+			IEnumerable<Thing> nonGeneratedThings = ResolveThingsFromIds(oldMap, oldMapState.PlayerAddedThingIds).ToList();
+
+			// discard the old map in main thread
 			LongEventHandler.QueueLongEvent(() => {
-				var oldParent = (MapParent)oldMap.ParentHolder;
-				var isOnStartingTile = MapIsOnStartingTile(oldMap, MapRerollController.Instance.WorldState);
-				var originalTile = MoveMapParentSomewhereElse(oldParent);
-
-				if (isOnStartingTile) Current.Game.InitData = MakeInitData(MapRerollController.Instance.WorldState, oldMap);
-
-				var oldMapState = GetStateForMap(oldMap);
-				var playerPawns = GetAllPlayerPawnsOnMap(oldMap); // includes animals
-				var colonists = GetAllPlayerPawnsOnMap(oldMap).Where(p => p.IsColonist).ToList();
-				IEnumerable<Thing> nonGeneratedThings = ResolveThingsFromIds(oldMap, oldMapState.PlayerAddedThingIds).ToList();
-				//Logger.Message("Non generated things: " + nonGeneratedThings.ListElements());
-
+				// wipe world things generated with map to prevent player from sneaking out items, then rerolling
 				if (oldMapState.ScenarioGeneratedThingIds.Count > 0 && MapRerollController.Instance.AntiCheeseSetting) {
 					try {
 						ClearRelationsWithPawns(colonists, oldMapState.ScenarioGeneratedThingIds);
@@ -43,13 +45,17 @@ namespace MapReroll {
 					} catch (Exception e) {
 						// unknown mod conflict is afoot: https://gist.github.com/HugsLibRecordKeeper/f9278475f338b5d564bf7b9f7f6642d7
 						// since this is a non-critical section we can just suppress the error for now
-						MapRerollController.Instance.Logger.Warning("Caught exception while trying to destroy world things from discarded map: "+e);
+						MapRerollController.Instance.Logger.Warning("Caught exception while trying to destroy world things from discarded map: " + e);
 					}
 				}
-
 				DespawnThings(playerPawns.OfType<Thing>(), oldMap);
 				DespawnThings(nonGeneratedThings, oldMap);
+				DiscardFactionBase(oldParent);
+				StripMap(oldMap);
+			}, "GeneratingMap", false, GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap);
 
+			// generate new map in work thread
+			LongEventHandler.QueueLongEvent(() => {
 				ResetIncidentScenarioParts(Find.Scenario);
 
 				var newParent = PlaceNewMapParent(originalTile);
@@ -60,6 +66,8 @@ namespace MapReroll {
 
 				var mapSeed = seed ?? GetNextRerollSeed(CurrentMapSeed(oldMapState));
 
+				MapRerollController.HasCavesOverride.OverrideEnabled = true;
+				MapRerollController.HasCavesOverride.HasCaves = Find.World.HasCaves(originalTile);
 				var newMap = GenerateNewMapWithSeed(newParent, Find.World.info.initialMapSize, mapSeed);
 				
 				var newMapState = GetStateForMap(newMap);
@@ -74,16 +82,26 @@ namespace MapReroll {
 					Find.Scenario.PostGameStart();
 					Current.Game.InitData = null;
 				}
-				
-				if (!isOnStartingTile) {
-					SpawnPawnsOnMap(playerPawns, newMap);
-				}
-				SpawnThingsOnMap(nonGeneratedThings, newMap);
 
-				DiscardFactionBase(oldParent);
+				// spawn things in main thread to ensure all map sections have finished generating
+				HugsLibController.Instance.DoLater.DoNextUpdate(() => {
+					try {
+						var viableCenter = FindViableDropSpotCenter(newMap);
+						if (!isOnStartingTile) {
+							SpawnPawnsOnMap(playerPawns, newMap, viableCenter);
+						}
+						SpawnThingsOnMap(nonGeneratedThings, newMap, viableCenter);
+					} catch (Exception e) {
+						GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap(e);
+					}
+				});
 
+				MapRerollController.HasCavesOverride.OverrideEnabled = false;
 				LoadingMessages.RestoreVanillaLoadingMessage();
-			}, "GeneratingMap", true, GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap);
+			}, "GeneratingMap", true, e => {
+				MapRerollController.HasCavesOverride.OverrideEnabled = false;
+				GameAndMapInitExceptionHandlers.ErrorWhileGeneratingMap(e);
+			});
 		}
 
 		public static string CurrentMapSeed(RerollMapState mapState) {
@@ -95,14 +113,14 @@ namespace MapReroll {
 		}
 
 		public static RerollMapState GetStateForMap(Map map = null) {
-			if (map == null) map = Find.VisibleMap;
+			if (map == null) map = Find.CurrentMap;
 			if (map == null) {
 				MapRerollController.Instance.Logger.Error("Cannot get state from null map. VisibleMap was null, as well: " + Environment.StackTrace);
 				return null;
 			}
 			var comp = map.GetComponent<MapComponent_MapRerollState>();
 			if (comp == null) {
-				MapRerollController.Instance.Logger.Error(String.Format("Could not get MapComponent_MapRerollState from map {0}: {1}", map, Environment.StackTrace));
+				MapRerollController.Instance.Logger.Error($"Could not get MapComponent_MapRerollState from map {map}: {Environment.StackTrace}");
 				return null;
 			}
 			return comp.State ?? (comp.State = new RerollMapState());
@@ -116,7 +134,7 @@ namespace MapReroll {
 			var state = GetStateForMap(onMap);
 			var knownOrInvalidThingIds = new HashSet<int>(state.PlayerAddedThingIds.Union(state.ScenarioGeneratedThingIds));
 			var nonColonistThings = ThingOwnerUtility.GetAllThingsRecursively(owner, false)
-				.Where(t => !(t is Pawn) && !knownOrInvalidThingIds.Contains(t.thingIDNumber));
+				.Where(t => !(t is Pawn) && !(t is Building) && !knownOrInvalidThingIds.Contains(t.thingIDNumber));
 			//Logger.Message("Player added things to map: " + nonColonistThings.ListElements());
 			state.PlayerAddedThingIds.AddRange(nonColonistThings.Select(t => t.thingIDNumber));
 		}
@@ -175,7 +193,7 @@ namespace MapReroll {
 		}
 
 		public static void ChargeForOperation(PaidOperationType type, int desiredPreviewsPage = 0) {
-			var map = Find.VisibleMap;
+			var map = Find.CurrentMap;
 			var state = GetStateForMap(map);
 			var cost = GetOperationCost(type, desiredPreviewsPage);
 			if (cost > 0) {
@@ -184,10 +202,6 @@ namespace MapReroll {
 					state.NumPreviewPagesPurchased = desiredPreviewsPage+1;
 				}
 			}
-		}
-
-		public static bool CanAffordOperation(PaidOperationType type) {
-			return GetOperationCost(type) <= GetStateForMap().ResourceBalance;
 		}
 
 		public static float GetOperationCost(PaidOperationType type, int desiredPreviewsPage = 0) {
@@ -204,7 +218,7 @@ namespace MapReroll {
 		}
 
 		private static List<Thing> GetAllResourcesOnMap(Map map) {
-			return map.listerThings.AllThings.Where(t => t.def != null && t.def.building != null && t.def.building.mineableScatterCommonality > 0)
+			return map.listerThings.AllThings.Where(t => t.def?.building != null && t.def.building.mineableScatterCommonality > 0)
 				.OrderBy(HasAdjacentNaturalRockComparator).ToList();
 		}
 
@@ -213,7 +227,7 @@ namespace MapReroll {
 			for (int i = 0; i < GenAdj.CardinalDirectionsAround.Length; i++) {
 				var adjacentPos = t.Position + GenAdj.CardinalDirectionsAround[i];
 				var adjacentThing = t.Map.edificeGrid[adjacentPos];
-				if (adjacentThing != null && adjacentThing.def != null && adjacentThing.def.building != null && adjacentThing.def.building.isNaturalRock && !adjacentThing.def.building.isResourceRock) {
+				if (adjacentThing?.def?.building != null && adjacentThing.def.building.isNaturalRock && !adjacentThing.def.building.isResourceRock) {
 					return Rand.Range(0, int.MaxValue / 2);
 				}
 			}
@@ -224,7 +238,7 @@ namespace MapReroll {
 			for (int i = 0; i < GenAdj.CardinalDirectionsAround.Length; i++) {
 				var adjacent = pos + GenAdj.CardinalDirectionsAround[i];
 				var adjacentThing = map.edificeGrid[adjacent];
-				if (adjacentThing != null && adjacentThing.def != null && adjacentThing.def.building != null && adjacentThing.def.building.isNaturalRock && viableRockTypes.Contains(adjacentThing.def)) {
+				if (adjacentThing?.def?.building != null && adjacentThing.def.building.isNaturalRock && viableRockTypes.Contains(adjacentThing.def)) {
 					return adjacentThing.def;
 				}
 			}
@@ -306,13 +320,12 @@ namespace MapReroll {
 			}
 		}
 
-		private static void SpawnPawnsOnMap(IEnumerable<Pawn> pawns, Map map) {
+		private static void SpawnPawnsOnMap(IEnumerable<Pawn> pawns, Map map, IntVec3 dropCenter) {
 			foreach (var pawn in pawns) {
 				if (pawn.Destroyed) continue;
-				IntVec3 pos;
-				if (!DropCellFinder.TryFindDropSpotNear(map.Center, map, out pos, false, false)) {
-					pos = map.Center;
-					MapRerollController.Instance.Logger.Error("Could not find drop spot for pawn {0} on map {1}", pawn, map);
+				if (!DropCellFinder.TryFindDropSpotNear(dropCenter, map, out IntVec3 pos, false, false)) {
+					pos = dropCenter;
+					MapRerollController.Instance.Logger.Warning("Could not find drop spot for pawn {0} on map {1}", pawn, map);
 				}
 				GenSpawn.Spawn(pawn, pos, map);
 			}
@@ -323,18 +336,28 @@ namespace MapReroll {
 			return map.listerThings.AllThings.Where(t => idSet.Contains(t.thingIDNumber));
 		}
 
-		private static void SpawnThingsOnMap(IEnumerable<Thing> things, Map map) {
+		private static void SpawnThingsOnMap(IEnumerable<Thing> things, Map map, IntVec3 dropCenter) {
 			foreach (var thing in things) {
 				if (thing.Destroyed || thing.Spawned) continue;
-				IntVec3 pos;
-				if (!DropCellFinder.TryFindDropSpotNear(map.Center, map, out pos, false, false)) {
-					pos = map.Center;
+				if (!DropCellFinder.TryFindDropSpotNear(dropCenter, map, out IntVec3 pos, false, false)) {
+					pos = dropCenter;
 				}
 				if (!GenPlace.TryPlaceThing(thing, pos, map, ThingPlaceMode.Near)) {
 					GenSpawn.Spawn(thing, pos, map);
-					MapRerollController.Instance.Logger.Error("Could not find drop spot for thing {0} on map {1}", thing, map);
+					MapRerollController.Instance.Logger.Warning("Could not find drop spot for thing {0} on map {1}", thing, map);
 				}
 			}
+		}
+
+		private static IntVec3 FindViableDropSpotCenter(Map map) {
+			const int viableCenterSearchRadius = 50;
+			var center = map.Center;
+			foreach (var c in GenRadial.RadialCellsAround(center, viableCenterSearchRadius, true)) {
+				if (DropCellFinder.IsGoodDropSpot(c, map, false, false)) {
+					return c;
+				}
+			}
+			return center;
 		}
 
 		private static GameInitData MakeInitData(RerollWorldState state, Map sourceMap) {
@@ -345,7 +368,7 @@ namespace MapReroll {
 				startingSeason = Season.Undefined,
 				startedFromEntry = true,
 				startingTile = state.StartingTile,
-				startingPawns = GetAllPlayerPawnsOnMap(sourceMap).Where(p => p.IsColonist).ToList()
+				startingAndOptionalPawns = GetAllPlayerPawnsOnMap(sourceMap).Where(p => p.IsColonist).ToList()
 			};
 		}
 
@@ -355,13 +378,98 @@ namespace MapReroll {
 			return mapParent.Tile == state.StartingTile;
 		}
 
+		// clears references to map components so that they may be garbage-collected even if the map itself isn't
+		private static void StripMap(Map map) {
+			map.spawnedThings = null;
+			map.cellIndices = null;
+			map.listerThings = null;
+			map.listerBuildings = null;
+			map.mapPawns = null;
+			map.dynamicDrawManager = null;
+			map.mapDrawer = null;
+			map.tooltipGiverList = null;
+			map.pawnDestinationReservationManager = null;
+			map.reservationManager = null;
+			map.physicalInteractionReservationManager = null;
+			map.designationManager = null;
+			map.lordManager = null;
+			map.debugDrawer = null;
+			map.passingShipManager = null;
+			map.haulDestinationManager = null;
+			map.gameConditionManager = null;
+			map.weatherManager = null;
+			map.zoneManager = null;
+			map.resourceCounter = null;
+			map.mapTemperature = null;
+			map.temperatureCache = null;
+			map.areaManager = null;
+			map.attackTargetsCache = null;
+			map.attackTargetReservationManager = null;
+			map.lordsStarter = null;
+			map.thingGrid = null;
+			map.coverGrid = null;
+			map.edificeGrid = null;
+			map.blueprintGrid = null;
+			map.fogGrid = null;
+			map.glowGrid = null;
+			map.regionGrid = null;
+			map.terrainGrid = null;
+			map.pathGrid = null;
+			map.roofGrid = null;
+			map.fertilityGrid = null;
+			map.snowGrid = null;
+			map.deepResourceGrid = null;
+			map.exitMapGrid = null;
+			map.linkGrid = null;
+			map.glowFlooder = null;
+			map.powerNetManager = null;
+			map.powerNetGrid = null;
+			map.regionMaker = null;
+			map.pathFinder = null;
+			map.pawnPathPool = null;
+			map.regionAndRoomUpdater = null;
+			map.regionLinkDatabase = null;
+			map.moteCounter = null;
+			map.gatherSpotLister = null;
+			map.windManager = null;
+			map.listerBuildingsRepairable = null;
+			map.listerHaulables = null;
+			map.listerMergeables = null;
+			map.listerFilthInHomeArea = null;
+			map.reachability = null;
+			map.itemAvailability = null;
+			map.autoBuildRoofAreaSetter = null;
+			map.roofCollapseBufferResolver = null;
+			map.roofCollapseBuffer = null;
+			map.wildAnimalSpawner = null;
+			map.wildPlantSpawner = null;
+			map.steadyEnvironmentEffects = null;
+			map.skyManager = null;
+			map.overlayDrawer = null;
+			map.floodFiller = null;
+			map.weatherDecider = null;
+			map.fireWatcher = null;
+			map.dangerWatcher = null;
+			map.damageWatcher = null;
+			map.strengthWatcher = null;
+			map.wealthWatcher = null;
+			map.regionDirtyer = null;
+			map.cellsInRandomOrder = null;
+			map.rememberedCameraPos = null;
+			map.mineStrikeManager = null;
+			map.storyState = null;
+			map.retainedCaravanData = null;
+			map.components.Clear();
+		}
+
 		private static void DiscardFactionBase(MapParent mapParent) {
 			Current.Game.DeinitAndRemoveMap(mapParent.Map);
 			Find.WorldObjects.Remove(mapParent);
 		}
-
+		
 		private static void SwitchToMap(Map newMap) {
-			Current.Game.VisibleMap = newMap;
+			Current.Game.CurrentMap = newMap;
+			Find.World.renderer.wantedMode = WorldRenderMode.None;
 		}
 
 		private static Map GenerateNewMapWithSeed(MapParent mapParent, IntVec3 size, string seed) {
@@ -391,7 +499,7 @@ namespace MapReroll {
 			foreach (var thing in things) {
 				EjectThingFromContainer(thing, referenceMap);
 				var pawn = thing as Pawn;
-				if (pawn != null && pawn.carryTracker != null && pawn.carryTracker.CarriedThing != null) {
+				if (pawn?.carryTracker?.CarriedThing != null) {
 					Thing dropped;
 					pawn.carryTracker.TryDropCarriedThing(thing.Position, ThingPlaceMode.Near, out dropped);
 				}
@@ -400,7 +508,7 @@ namespace MapReroll {
 		}
 
 		private static MapParent PlaceNewMapParent(int worldTile) {
-			var newParent = (MapParent)WorldObjectMaker.MakeWorldObject(WorldObjectDefOf.FactionBase);
+			var newParent = (MapParent)WorldObjectMaker.MakeWorldObject(WorldObjectDefOf.Settlement);
 			newParent.Tile = worldTile;
 			newParent.SetFaction(Faction.OfPlayer);
 			Find.WorldObjects.Add(newParent);
@@ -424,7 +532,7 @@ namespace MapReroll {
 			ThingOwnerUtility.GetAllThingsRecursively(map, things, false);
 			for (int i = 0; i < things.Count; i++) {
 				var thing = things[i];
-				if (thing != null && thing.def != null && thing.def.EverHaulable) {
+				if (thing?.def != null && thing.def.EverHaulable) {
 					matchingThings.Add(thing);
 				}
 			}
@@ -493,7 +601,14 @@ namespace MapReroll {
 			}
 
 			private static void SetLoadingScreenMessage(string message) {
-				LanguageDatabase.activeLanguage.keyedReplacements[StockLoadingMessageKey] = message;
+				var original = LanguageDatabase.activeLanguage.keyedReplacements[StockLoadingMessageKey];
+				LanguageDatabase.activeLanguage.keyedReplacements[StockLoadingMessageKey] = new LoadedLanguage.KeyedReplacement {
+					fileSource = original.fileSource,
+					fileSourceFullPath = original.fileSourceFullPath,
+					fileSourceLine = original.fileSourceLine,
+					key = original.key,
+					value = message
+				};
 			}
 
 			private static int CountAvailableLoadingMessages() {

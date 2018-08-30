@@ -1,9 +1,12 @@
-﻿using Harmony;
+﻿using System;
+using Harmony;
 using RimWorld;
 
 namespace MapReroll.Patches {
-	//private void PodOpen()
-	[HarmonyPatch(typeof(ActiveDropPod), "PodOpen")]
+	/// <summary>
+	/// Ensures that things delivered by drop pod are registered to be carried over during a reroll
+	/// </summary>
+	[HarmonyPatch(typeof(ActiveDropPod), "PodOpen", new Type[0])]
 	public class ActiveDropPod_PodOpen_Patch {
 		[HarmonyPrefix]
 		public static void RecordPodContents(ActiveDropPod __instance) {

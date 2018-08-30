@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using HugsLib;
 using HugsLib.Utils;
 using RimWorld;
 using UnityEngine;
@@ -46,7 +47,7 @@ namespace MapReroll.UI {
 			SetUpTabs();
 			mapState = RerollToolbox.GetStateForMap();
 			favoritesProvider = new ListPreviewPageProvider();
-			previewGenerator = new GeneratedPreviewPageProvider(Find.VisibleMap, Find.World);
+			previewGenerator = new GeneratedPreviewPageProvider(Find.CurrentMap, Find.World);
 			previewGenerator.OpenPage(0);
 			previewGenerator.OnFavoriteToggled = OnPreviewFavoriteToggled;
 		}
@@ -123,7 +124,7 @@ namespace MapReroll.UI {
 					if (Widgets.ButtonText(generateBtnRect, "Reroll2_previews_generateMap".Translate())) {
 						SoundDefOf.Click.PlayOneShotOnCamera();
 						Close();
-						MapRerollController.Instance.ExecuteInMainThread(() => {
+						HugsLibController.Instance.DoLater.DoNextUpdate(() => {
 							previewGenerator.WaitForDisposal();
 							MapRerollController.Instance.RerollMap(currentZoomedPreview.Seed);
 						});
@@ -175,7 +176,7 @@ namespace MapReroll.UI {
 
 		private void OnPreviewFavoriteToggled(Widget_MapPreview preview) {
 			var makeFavorite = !preview.IsFavorite;
-			(makeFavorite ? SoundDefOf.CheckboxTurnedOn : SoundDefOf.CheckboxTurnedOff).PlayOneShotOnCamera();
+			(makeFavorite ? SoundDefOf.Checkbox_TurnedOn : SoundDefOf.Checkbox_TurnedOff).PlayOneShotOnCamera();
 			if (makeFavorite) {
 				favoritesProvider.Add(new Widget_MapPreview(preview));
 			} else {

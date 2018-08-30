@@ -43,7 +43,7 @@ namespace MapReroll.UI {
 		private bool ShowInterface {
 			get {
 				if (Current.ProgramState != ProgramState.Playing || Current.Game == null) return false;
-				var visibleMap = Current.Game.VisibleMap;	
+				var visibleMap = Current.Game.CurrentMap;	
 				return visibleMap != null
 						&& visibleMap.IsPlayerHome
 						&& Find.World.renderer.wantedMode == WorldRenderMode.None

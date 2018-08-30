@@ -28,9 +28,9 @@ namespace MapReroll {
 
 		// prevents the main thread from messing with the Rand seeding done in the preview thread
 		public static bool RandStateStackCheckingPaused { get; set; }
+		// ensures cave presence is consistent across rerolls
+		public static readonly HasCavesOverride HasCavesOverride = new HasCavesOverride();
 
-		private readonly Queue<Action> scheduledMainThreadActions = new Queue<Action>();
-		
 		public override string ModIdentifier {
 			get { return "MapReroll"; }
 		}
@@ -60,12 +60,12 @@ namespace MapReroll {
 		public SettingHandle<bool> GeyserArrowsSetting { get; private set; }
 		public SettingHandle<bool> PreviewCavesSetting { get; private set; }
 
-		// feel free to use these to detect reroll events 
+		// feel free to use these to detect reroll events
+		// ReSharper disable EventNeverSubscribedTo.Global
 		public event Action OnMapRerolled;
 		public event Action OnGeysersRerolled;
 
 		private readonly MapRerollUIController uiController;
-		private MapGeneratorDef lastUsedMapGenerator;
 		private GeyserRerollTool geyserReroll;
 		private bool pauseScheduled;
 		private List<KeyValuePair<int, string>> cachedMapSizes;
@@ -102,15 +102,6 @@ namespace MapReroll {
 			}
 		}
 
-		public override void MapGenerated(Map map) {
-			RerollToolbox.StoreGeneratedThingIdsInMapState(map);
-			var mapState = RerollToolbox.GetStateForMap(map);
-			mapState.UsedMapGenerator = lastUsedMapGenerator;
-			if (!rerollInProgress) {
-				mapState.ResourceBalance = MaxResourceBalance;
-			}
-		}
-
 		public override void MapLoaded(Map map) {
 			geyserReroll = new GeyserRerollTool();
 			if (rerollInProgress) {
@@ -120,7 +111,7 @@ namespace MapReroll {
 
 			if (pauseScheduled) {
 				pauseScheduled = false;
-				ExecuteInMainThread(() => Find.TickManager.CurTimeSpeed = TimeSpeed.Paused);
+				HugsLibController.Instance.DoLater.DoNextUpdate(() => Find.TickManager.CurTimeSpeed = TimeSpeed.Paused);
 			}
 
 			RerollToolbox.TryStopPawnVomiting(map);
@@ -136,7 +127,7 @@ namespace MapReroll {
 		public void RerollGeysers() {
 			geyserReroll.DoReroll();
 			if (PaidRerollsSetting) {
-				RerollToolbox.SubtractResourcePercentage(Find.VisibleMap, Resources.Settings.MapRerollSettings.geyserRerollCost);
+				RerollToolbox.SubtractResourcePercentage(Find.CurrentMap, Resources.Settings.MapRerollSettings.geyserRerollCost);
 			}
 			if (OnGeysersRerolled != null) OnGeysersRerolled();
 		}
@@ -147,9 +138,6 @@ namespace MapReroll {
 
 		public override void Update() {
 			if (geyserReroll != null) geyserReroll.OnUpdate();
-			while (scheduledMainThreadActions.Count > 0) {
-				scheduledMainThreadActions.Dequeue()();
-			}
 		}
 
 		public override void Tick(int currentTick) {
@@ -160,33 +148,34 @@ namespace MapReroll {
 			uiController.OnGUI();
 		}
 
-		internal void RecordUsedMapGenerator(MapGeneratorDef def) {
-			lastUsedMapGenerator = def;
-		}
-
-		public void ExecuteInMainThread(Action action) {
-			scheduledMainThreadActions.Enqueue(action);
-		}
-
 		internal void PauseOnNextLoad() {
 			pauseScheduled = true;
 		}
 
+		internal void OnMapGenerated(Map map, MapGeneratorDef usedMapGenerator) {
+			RerollToolbox.StoreGeneratedThingIdsInMapState(map);
+			var mapState = RerollToolbox.GetStateForMap(map);
+			mapState.UsedMapGenerator = usedMapGenerator;
+			if (!rerollInProgress) {
+				mapState.ResourceBalance = MaxResourceBalance;
+			}
+		}
+
 		private void PrepareSettingsHandles() {
-			SettingHandle.ShouldDisplay devModeVisible = () => Prefs.DevMode;
+			bool DevModeVisible() => Prefs.DevMode;
 
 			PaidRerollsSetting = Settings.GetHandle("paidRerolls", "setting_paidRerolls_label".Translate(), "setting_paidRerolls_desc".Translate(), true);
 			
 			DeterministicRerollsSetting = Settings.GetHandle("deterministicRerolls", "setting_deterministicRerolls_label".Translate(), "setting_deterministicRerolls_desc".Translate(), true);
 
 			AntiCheeseSetting = Settings.GetHandle("antiCheese", "setting_antiCheese_label".Translate(), "setting_antiCheese_desc".Translate(), true);
-			AntiCheeseSetting.VisibilityPredicate = devModeVisible;
+			AntiCheeseSetting.VisibilityPredicate = DevModeVisible;
 
 			LogConsumedResourcesSetting = Settings.GetHandle("logConsumption", "setting_logConsumption_label".Translate(), "setting_logConsumption_desc".Translate(), false);
-			LogConsumedResourcesSetting.VisibilityPredicate = devModeVisible;
+			LogConsumedResourcesSetting.VisibilityPredicate = DevModeVisible;
 
 			NoVomitingSetting = Settings.GetHandle("noVomiting", "setting_noVomiting_label".Translate(), "setting_noVomiting_desc".Translate(), false);
-			NoVomitingSetting.VisibilityPredicate = devModeVisible;
+			NoVomitingSetting.VisibilityPredicate = DevModeVisible;
 
 			LoadingMessagesSetting = Settings.GetHandle("loadingMessages", "setting_loadingMessages_label".Translate(), "setting_loadingMessages_desc".Translate(), true);
 
@@ -218,11 +207,16 @@ namespace MapReroll {
 				if (currentIndex < 0) currentIndex = 0;
 				if (Widgets.ButtonText(rect, sizes[currentIndex].Value)) {
 					Find.WindowStack.Add(new FloatMenu(sizes.Select(p =>
-						new FloatMenuOption { Label = p.Value, action = () => world.info.initialMapSize = new IntVec3(p.Key, 1, p.Key) }
+						new FloatMenuOption(p.Value, () => world.info.initialMapSize = new IntVec3(p.Key, 1, p.Key))
 					).ToList()));
 				}
 			}
 			return false;
 		}
+	}
+
+	public class HasCavesOverride {
+		public bool OverrideEnabled { get; set; }
+		public bool HasCaves { get; set; }
 	}
 }
