@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using HugsLib;
+using HugsLib.Utils;
 using MapReroll.Promises;
 using RimWorld;
 using RimWorld.Planet;
@@ -13,11 +14,8 @@ namespace MapReroll {
 	/// Given a map location and seed, generates an approximate preview texture of how the map would look once generated.
 	/// </summary>
 	public class MapPreviewGenerator : IDisposable {
-		public delegate TerrainDef BeachMakerBeachTerrainAt(IntVec3 c, BiomeDef biome);
-
+		private delegate TerrainDef BeachMakerBeachTerrainAt(IntVec3 c, BiomeDef biome);
 		private delegate TerrainDef RiverMakerTerrainAt(IntVec3 c, bool recordForValidation);
-
-		public static BeachMakerBeachTerrainAt AlternateBeachTerrainAtDelegate;
 
 		private static readonly Color defaultTerrainColor = GenColor.FromHex("6D5B49");
 		private static readonly Color missingTerrainColor = new Color(0.38f, 0.38f, 0.38f);
@@ -167,8 +165,7 @@ namespace MapReroll {
 				if (terrainGenStepDef == null) throw new Exception("Named GenStepDef not found: " + terrainGenStepName);
 				var terrainGenstep = terrainGenStepDef.genStep;
 				var riverMaker = ReflectionCache.GenStepTerrain_GenerateRiver.Invoke(terrainGenstep, new object[] {grids.Map});
-				var beachTerrainAtDelegate = AlternateBeachTerrainAtDelegate ??
-											(BeachMakerBeachTerrainAt)Delegate.CreateDelegate(typeof(BeachMakerBeachTerrainAt), null, ReflectionCache.BeachMaker_BeachTerrainAt);
+				var beachTerrainAtDelegate = (BeachMakerBeachTerrainAt)Delegate.CreateDelegate(typeof(BeachMakerBeachTerrainAt), null, ReflectionCache.BeachMaker_BeachTerrainAt);
 				var riverTerrainAtDelegate = riverMaker == null ? null
 					: (RiverMakerTerrainAt)Delegate.CreateDelegate(typeof(RiverMakerTerrainAt), riverMaker, ReflectionCache.RiverMaker_TerrainAt);
 				ReflectionCache.BeachMaker_Init.Invoke(null, new object[] {grids.Map});
@@ -194,13 +191,19 @@ namespace MapReroll {
 				foreach (var terrainPatchMaker in grids.Map.Biome.terrainPatchMakers) {
 					terrainPatchMaker.Cleanup();
 				}
+			} catch (Exception e) {
+				MapRerollController.Instance.Logger.ReportException(e, null, false, "preview generation");
 			} finally {
 				RockNoises.Reset();
 				DeepProfiler.End();
 				Find.World.info.seedString = prevSeed;
-				ReflectionCache.BeachMaker_Cleanup.Invoke(null, null);
 				MapRerollController.RandStateStackCheckingPaused = false;
 				MapRerollController.HasCavesOverride.OverrideEnabled = false;
+				try {
+					ReflectionCache.BeachMaker_Cleanup.Invoke(null, null);
+				} catch (Exception e) {
+					MapRerollController.Instance.Logger.ReportException(e, null, false, "BeachMaker preview cleanup");
+				}
 			}
 		}
 

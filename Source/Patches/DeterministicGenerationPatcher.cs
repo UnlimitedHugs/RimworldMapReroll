@@ -8,6 +8,7 @@ namespace MapReroll.Patches {
 	/// A tool to apply multiple patches to make some map feature generators independent of their execution order
 	/// </summary>
 	public static class DeterministicGenerationPatcher {
+		private const int DeterministicPatchPriority = 10;
 		private static bool generatorSeedPushed;
 
 		public static void InstrumentMethodForDeterministicGeneration(MethodInfo method, MethodInfo prefix, HarmonyInstance harmony) {
@@ -15,7 +16,9 @@ namespace MapReroll.Patches {
 				MapRerollController.Instance.Logger.Error($"Cannot instrument null method with prefix {prefix}: {Environment.StackTrace}");
 				return;
 			}
-			harmony.Patch(method, new HarmonyMethod(prefix), new HarmonyMethod(((Action)PopDeterministicRandState).Method));
+			harmony.Patch(method, 
+				new HarmonyMethod(prefix) {prioritiy = DeterministicPatchPriority},
+				new HarmonyMethod(((Action)PopDeterministicRandState).Method) {prioritiy = -DeterministicPatchPriority});
 		}
 
 		public static void DeterministicBeachSetup(Map map) {
