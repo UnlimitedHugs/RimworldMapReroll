@@ -1,5 +1,5 @@
 {
-	"title": "Map Reroll",
-	"description": "This mod allows you to quickly randomize your starting map and steam vents locations. Your starting scenario, colonists, items, etc. will all stay the same.\nNow includes the map preview generator- rather than trying for random maps, you can pick exactly the map you're looking for from a nearly limitless selection.\n\nOf course, there is a small price to pay- in the form of unmined resources from your map.\nThe resource cost is optional and can be disabled in the Options > Mod Options dialog.\n\n[b]Important:[/b] The HugsLib library mod must also be installed. Make sure both are enabled in the Mods menu and HugsLib is loaded first.\n\nThe in-game description contains a brief guide. To get more info, discuss features or provide feedback, please visit the official forum thread: \nhttps://ludeon.com/forums/index.php?topic=18073\n\nHope you enjoy.\n\nMap Reroll works well with [url=http://steamcommunity.com/sharedfiles/filedetails/?id=1194812929]Rainbeau's Configurable Maps[/url] mod.\n\nThe B18 version is still available and can be found here: [url=https://steamcommunity.com/sharedfiles/filedetails/?id=1495963801]Map Reroll (B18)[/url]",
+	"title": "Map Reroll (B19)",
+	"description": "Legacy version of Map Reroll for B19.\nThe latest version for 1.0 is available here: [url=https://steamcommunity.com/sharedfiles/filedetails/?id=761315214]Map Reroll (1.0)[/url]",
 	"visibility": 0
 }
