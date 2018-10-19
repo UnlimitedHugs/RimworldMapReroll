@@ -8,7 +8,7 @@
 	<Reroll2_rerollInProgress>Reroll already in progress.</Reroll2_rerollInProgress>
 	<Reroll2_costSuffix> ({0}%)</Reroll2_costSuffix>
 	
-	<Reroll2_remainingResources>Remaining map resources: {0:F1}%</Reroll2_remainingResources>
+	<Reroll2_remainingResources>Remaining map resources: {0}%</Reroll2_remainingResources>
 	
 	<Reroll2_previews_previewsTab>Previews</Reroll2_previews_previewsTab>
 	<Reroll2_previews_favoritesTab>Favorites ({0})</Reroll2_previews_favoritesTab>

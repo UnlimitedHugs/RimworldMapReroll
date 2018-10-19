@@ -1,4 +1,5 @@
-﻿using MapReroll.Interpolation;
+﻿using System;
+using MapReroll.Interpolation;
 using UnityEngine;
 using Verse;
 
@@ -25,13 +26,13 @@ namespace MapReroll.UI {
 			GUILayout.Box(string.Empty, Widgets.EmptyStyle, GUILayout.ExpandWidth(true), GUILayout.Height(height));
 			var controlRect = GUILayoutUtility.GetLastRect();
 			var contentsRect = controlRect.ContractedBy(ControlPadding);
-			var labelHeight = 25f;
+			const float labelHeight = 25f;
 
 			DrawColoredOutline(outlineColor, controlRect);
 
 			var bottomHalf = new Rect(contentsRect.x, contentsRect.y + labelHeight, contentsRect.width, contentsRect.height - labelHeight);
 			if (MapRerollController.Instance.PaidRerollsSetting) {
-				Widgets.Label(contentsRect, "Reroll2_remainingResources".Translate(interpolator.value));
+				Widgets.Label(contentsRect, "Reroll2_remainingResources".Translate(Math.Round(interpolator.value, 1)));
 				float fillPercent = Mathf.Clamp(interpolator.value, 0, MapRerollController.MaxResourceBalance);
 				DrawTiledTexture(bottomHalf, Resources.Textures.UISteelBack);
 				var barRect = new Rect(bottomHalf.x, bottomHalf.y, bottomHalf.width * (fillPercent / 100f), bottomHalf.height);
