@@ -55,6 +55,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Source\MapSeed.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Source\Compat_ConfigurableMaps.cs" />
     <Compile Include="Source\GeyserRerollTool.cs" />
@@ -62,6 +63,7 @@
     <Compile Include="Source\Interpolation\ValueInterpolator.cs" />
     <Compile Include="Source\MapComponent_MapRerollState.cs" />
     <Compile Include="Source\MapPreviewGenerator.cs" />
+    <Compile Include="Source\MapSize.cs" />
     <Compile Include="Source\Patches\ActiveDropPod_PodOpen_Patch.cs" />
     <Compile Include="Source\Patches\CaravanEnterMapUtility_Enter_Patch.cs" />
     <Compile Include="Source\Patches\DeterministicGenerationPatcher.cs" />

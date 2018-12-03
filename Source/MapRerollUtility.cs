@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using UnityEngine;
 using Verse;
 
@@ -32,6 +33,24 @@ namespace MapReroll {
 			if (loopCount > loopLimit) {
 				throw new Exception("Infinite loop detected");
 			}
+		}
+
+		public static string Base64Encode(string plainText) {
+			var plainTextBytes = Encoding.UTF8.GetBytes(plainText);
+			return Convert.ToBase64String(plainTextBytes);
+		}
+
+		public static bool TryBase64Decode(string base64EncodedData, out string decodedString, out string errorMessage) {
+			errorMessage = null;
+			decodedString = null;
+			try {
+				var base64EncodedBytes = Convert.FromBase64String(base64EncodedData);
+				decodedString = Encoding.UTF8.GetString(base64EncodedBytes);
+				return true;
+			} catch (Exception e) {
+				errorMessage = e.Message;
+			}
+			return false;
 		}
 	}
 }

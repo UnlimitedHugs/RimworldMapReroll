@@ -106,7 +106,7 @@ namespace MapReroll {
 			geyserReroll = new GeyserRerollTool();
 			if (rerollInProgress) {
 				RerollToolbox.KillMapIntroDialog();
-				if (OnMapRerolled != null) OnMapRerolled();
+				OnMapRerolled?.Invoke();
 			}
 
 			if (pauseScheduled) {
@@ -114,12 +114,13 @@ namespace MapReroll {
 				HugsLibController.Instance.DoLater.DoNextUpdate(() => Find.TickManager.CurTimeSpeed = TimeSpeed.Paused);
 			}
 
+			RerollToolbox.GetStateForMap(map).ConvertLegacyMapSeed();
 			RerollToolbox.TryStopPawnVomiting(map);
 			uiController.MapLoaded(rerollInProgress);
 			rerollInProgress = false;
 		}
 
-		public void RerollMap(string seed) {
+		public void RerollMap(MapSeed seed) {
 			rerollInProgress = true;
 			RerollToolbox.DoMapReroll(seed);
 		}
@@ -200,8 +201,8 @@ namespace MapReroll {
 					SoundDefOf.ClickReject.PlayOneShotOnCamera();
 				}
 			} else {
-				var sizes = cachedMapSizes ?? (cachedMapSizes = RerollToolbox.GetAvailableMapSizes().Select(pair =>
-					new KeyValuePair<int, string>(pair.Key, string.Format("{0}x{0}{1}", pair.Key, pair.Value != null ? " - " + pair.Value : null))
+				var sizes = cachedMapSizes ?? (cachedMapSizes = MapSize.AvailableMapSizes.Where(s => !s.Hidden).Select(size =>
+					new KeyValuePair<int, string>(size.Size, size.ToString())
 				).ToList());
 				var currentIndex = sizes.FindIndex(p => p.Key == world.info.initialMapSize.x);
 				if (currentIndex < 0) currentIndex = 0;

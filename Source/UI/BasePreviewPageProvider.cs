@@ -24,7 +24,7 @@ namespace MapReroll.UI {
 			get { return previews.Count; }
 		}
 
-		public Widget_MapPreview TryFindPreview(string seed) {
+		public Widget_MapPreview TryFindPreview(MapSeed seed) {
 			return previews.Find(p => p.Seed == seed);
 		}
 

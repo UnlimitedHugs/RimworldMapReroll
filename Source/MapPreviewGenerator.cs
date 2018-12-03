@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading;
 using HugsLib;
-using HugsLib.Utils;
 using MapReroll.Promises;
 using RimWorld;
 using RimWorld.Planet;
@@ -51,7 +50,7 @@ namespace MapReroll {
 		private EventWaitHandle mainThreadHandle = new AutoResetEvent(false);
 		private bool disposed;
 
-		public IPromise<Texture2D> QueuePreviewForSeed(string seed, int mapTile, int mapSize, bool revealCaves) {
+		public IPromise<Texture2D> QueuePreviewForSeed(MapSeed seed, bool revealCaves) {
 			if (disposeHandle == null) {
 				throw new Exception("MapPreviewGenerator has already been disposed.");
 			}
@@ -60,7 +59,7 @@ namespace MapReroll {
 				workerThread = new Thread(DoThreadWork);
 				workerThread.Start();
 			}
-			queuedRequests.Enqueue(new QueuedPreviewRequest(promise, seed, mapTile, mapSize, revealCaves));
+			queuedRequests.Enqueue(new QueuedPreviewRequest(promise, seed, revealCaves));
 			workHandle.Set();
 			return promise;
 		}
@@ -77,7 +76,8 @@ namespace MapReroll {
 						int width = 0, height = 0;
 						WaitForExecutionInMainThread(() => {
 							// textures must be instantiated in the main thread
-							texture = new Texture2D(req.MapSize, req.MapSize, TextureFormat.RGB24, false);
+							var mapSize = req.Seed.MapSize;
+							texture = new Texture2D(mapSize, mapSize, TextureFormat.RGB24, false);
 							width = texture.width;
 							height = texture.height;
 						});
@@ -87,7 +87,7 @@ namespace MapReroll {
 								throw new Exception("Could not create required texture.");
 							}
 							placeholderTex = new ThreadableTexture(width, height);
-							GeneratePreviewForSeed(req.Seed, req.MapTile, req.MapSize, req.RevealCaves, placeholderTex);
+							GeneratePreviewForSeed(req.Seed, req.RevealCaves, placeholderTex);
 						} catch (Exception e) {
 							MapRerollController.Instance.Logger.Error("Failed to generate map preview: " + e);
 							rejectException = e;
@@ -149,16 +149,16 @@ namespace MapReroll {
 			mainThreadHandle.WaitOne(1000);
 		}
 
-		private static void GeneratePreviewForSeed(string seed, int mapTile, int mapSize, bool revealCaves, ThreadableTexture texture) {
+		private static void GeneratePreviewForSeed(MapSeed seed, bool revealCaves, ThreadableTexture texture) {
 			var prevSeed = Find.World.info.seedString;
 
 			try {
-				MapRerollController.HasCavesOverride.HasCaves = Find.World.HasCaves(mapTile);
+				MapRerollController.HasCavesOverride.HasCaves = Find.World.HasCaves(seed.WorldTile);
 				MapRerollController.HasCavesOverride.OverrideEnabled = true;
-				Find.World.info.seedString = seed;
+				Find.World.info.seedString = seed.WorldSeed;
 
 				MapRerollController.RandStateStackCheckingPaused = true;
-				var grids = GenerateMapGrids(mapTile, mapSize, revealCaves);
+				var grids = GenerateMapGrids(seed.WorldTile, seed.MapSize, revealCaves);
 				DeepProfiler.Start("generateMapPreviewTexture");
 				const string terrainGenStepName = "Terrain";
 				var terrainGenStepDef = DefDatabase<GenStepDef>.GetNamedSilentFail(terrainGenStepName);
@@ -341,16 +341,12 @@ namespace MapReroll {
 
 		private class QueuedPreviewRequest {
 			public readonly Promise<Texture2D> Promise;
-			public readonly string Seed;
-			public readonly int MapTile;
-			public readonly int MapSize;
+			public readonly MapSeed Seed;
 			public readonly bool RevealCaves;
 
-			public QueuedPreviewRequest(Promise<Texture2D> promise, string seed, int mapTile, int mapSize, bool revealCaves) {
+			public QueuedPreviewRequest(Promise<Texture2D> promise, MapSeed seed, bool revealCaves) {
 				Promise = promise;
 				Seed = seed;
-				MapTile = mapTile;
-				MapSize = mapSize;
 				RevealCaves = revealCaves;
 			}
 		}

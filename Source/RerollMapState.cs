@@ -1,11 +1,15 @@
 using System.Collections.Generic;
+using System.IO;
 using Verse;
 
 namespace MapReroll {
 	public class RerollMapState : IExposable {
+		private readonly Map map;
+
+		// saved
 		public bool RerollGenerated;
 		public bool MapCommitted;
-		public string RerollSeed;
+		private string legacyMapSeed;
 		public float ResourceBalance;
 		public int NumPreviewPagesPurchased;
 		public MapGeneratorDef UsedMapGenerator;
@@ -24,15 +28,48 @@ namespace MapReroll {
 			set { _playerAddedThingIds = value; }
 		}
 
+		private MapSeed _mapSeed;
+		public MapSeed MapSeed {
+			get {
+				if (_mapSeed == null) {
+					if(map.Parent == null) throw new IOException("Could derive map seed- map is not assigned to a parent tile");
+					_mapSeed = new MapSeed(Find.World.info.seedString, map.Tile, map.Size.x);
+				}
+				return _mapSeed;
+			}
+		}
+
+		public RerollMapState(Map map) {
+			this.map = map;
+		}
+
 		public void ExposeData() {
 			Scribe_Values.Look(ref RerollGenerated, "rerollGenerated");
-			Scribe_Values.Look(ref RerollSeed, "rerollSeed");
+			Scribe_Values.Look(ref legacyMapSeed, "rerollSeed");
+			LookMapSeed();
 			Scribe_Values.Look(ref ResourceBalance, "resourceBalance");
 			Scribe_Values.Look(ref NumPreviewPagesPurchased, "pagesPurchased");
 			Scribe_Values.Look(ref MapCommitted, "committed");
 			Scribe_Defs.Look(ref UsedMapGenerator, "usedMapGenerator");
 			Scribe_Collections.Look(ref _scenarioGeneratedThingIds, "scenarioGeneratedThingIds", LookMode.Value);
 			Scribe_Collections.Look(ref _playerAddedThingIds, "playerAddedThingIds", LookMode.Value);
+		}
+
+		private void LookMapSeed() {
+			var seedString = _mapSeed?.ToString();
+			Scribe_Values.Look(ref seedString, "mapSeed");
+			if (Scribe.mode == LoadSaveMode.LoadingVars) {
+				_mapSeed = MapSeed.TryParseLogError(seedString);
+			}
+		}
+
+		internal void ConvertLegacyMapSeed() {
+			if (legacyMapSeed != null) {
+				if (_mapSeed == null) {
+					_mapSeed = new MapSeed(legacyMapSeed, map.Tile, map.Size.x);
+				}
+				legacyMapSeed = null;
+			}
 		}
 	}
 }

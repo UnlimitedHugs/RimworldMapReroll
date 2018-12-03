@@ -17,7 +17,7 @@ namespace MapReroll {
 		private const sbyte ThingMemoryState = -2;
 		private const sbyte ThingDiscardedState = -3;
 
-		public static void DoMapReroll(string seed = null) {
+		public static void DoMapReroll(MapSeed seed) {
 			var oldMap = Find.CurrentMap;
 			if (oldMap == null) {
 				MapRerollController.Instance.Logger.Error("No visible map- cannot reroll");
@@ -26,7 +26,7 @@ namespace MapReroll {
 			LoadingMessages.SetCustomLoadingMessage(MapRerollController.Instance.LoadingMessagesSetting);
 			var oldParent = (MapParent)oldMap.ParentHolder;
 			var isOnStartingTile = MapIsOnStartingTile(oldMap, MapRerollController.Instance.WorldState);
-			var originalTile = MoveMapParentSomewhereElse(oldParent);
+			var originalTile = oldParent.Tile;
 
 			if (isOnStartingTile) Current.Game.InitData = MakeInitData(MapRerollController.Instance.WorldState, oldMap);
 
@@ -58,23 +58,23 @@ namespace MapReroll {
 			LongEventHandler.QueueLongEvent(() => {
 				ResetIncidentScenarioParts(Find.Scenario);
 
-				var newParent = PlaceNewMapParent(originalTile);
-
 				if (Find.TickManager.CurTimeSpeed == TimeSpeed.Paused) {
 					MapRerollController.Instance.PauseOnNextLoad();
 				}
 
-				var mapSeed = seed ?? GetNextRerollSeed(CurrentMapSeed(oldMapState));
+				var mapSeed = seed ?? GetNextRerollSeed(oldMapState.MapSeed);
 
 				MapRerollController.HasCavesOverride.OverrideEnabled = true;
 				MapRerollController.HasCavesOverride.HasCaves = Find.World.HasCaves(originalTile);
-				var newMap = GenerateNewMapWithSeed(newParent, Find.World.info.initialMapSize, mapSeed);
+
+				var newParent = GenerateMapInTile(originalTile, Find.World.info.initialMapSize, mapSeed, 
+					t => t != originalTile, parent => parent.Tile = originalTile);
+				var newMap = newParent.Map;
 				
 				var newMapState = GetStateForMap(newMap);
 				newMapState.RerollGenerated = true;
 				newMapState.PlayerAddedThingIds = oldMapState.PlayerAddedThingIds;
 				newMapState.ResourceBalance = oldMapState.ResourceBalance;
-				newMapState.RerollSeed = mapSeed;
 				newMapState.NumPreviewPagesPurchased = 0;
 
 				SwitchToMap(newMap);
@@ -104,12 +104,9 @@ namespace MapReroll {
 			});
 		}
 
-		public static string CurrentMapSeed(RerollMapState mapState) {
-			return mapState.RerollSeed ?? Find.World.info.seedString;
-		}
-
-		public static string GetNextRerollSeed(string currentSeed) {
-			return MapRerollController.Instance.DeterministicRerollsSetting ? GenerateNewRerollSeed(currentSeed) : Rand.Int.ToString();
+		public static MapSeed GetNextRerollSeed(MapSeed baseSeed) {
+			return MapRerollController.Instance.DeterministicRerollsSetting ? 
+				baseSeed.DeriveNextSeed() : MapSeed.MakeRandomSeed(baseSeed.WorldTile, baseSeed.MapSize);
 		}
 
 		public static RerollMapState GetStateForMap(Map map = null) {
@@ -123,7 +120,7 @@ namespace MapReroll {
 				MapRerollController.Instance.Logger.Error($"Could not get MapComponent_MapRerollState from map {map}: {Environment.StackTrace}");
 				return null;
 			}
-			return comp.State ?? (comp.State = new RerollMapState());
+			return comp.State;
 		}
 
 		public static void KillMapIntroDialog() {
@@ -254,19 +251,6 @@ namespace MapReroll {
 					break;
 				}
 			}
-		}
-
-		public static List<KeyValuePair<int, string>> GetAvailableMapSizes() {
-			return new List<KeyValuePair<int, string>> {
-				new KeyValuePair<int, string>(200, "MapSizeSmall".Translate()),
-				new KeyValuePair<int, string>(225, null),
-				new KeyValuePair<int, string>(250, "MapSizeMedium".Translate()),
-				new KeyValuePair<int, string>(275, null),
-				new KeyValuePair<int, string>(300, "MapSizeLarge".Translate()),
-				new KeyValuePair<int, string>(325, null),
-				new KeyValuePair<int, string>(350, "MapSizeExtreme".Translate()),
-				new KeyValuePair<int, string>(400, null),
-			};
 		}
 
 		/// <summary>
@@ -463,21 +447,14 @@ namespace MapReroll {
 		}
 
 		private static void DiscardFactionBase(MapParent mapParent) {
+			// this will automatically deinit the contained map
 			Current.Game.DeinitAndRemoveMap(mapParent.Map);
-			Find.WorldObjects.Remove(mapParent);
+			
 		}
 		
 		private static void SwitchToMap(Map newMap) {
 			Current.Game.CurrentMap = newMap;
 			Find.World.renderer.wantedMode = WorldRenderMode.None;
-		}
-
-		private static Map GenerateNewMapWithSeed(MapParent mapParent, IntVec3 size, string seed) {
-			var prevSeed = Find.World.info.seedString;
-			Find.World.info.seedString = seed;
-			var newMap = GetOrGenerateMapUtility.GetOrGenerateMap(mapParent.Tile, size, null);
-			Find.World.info.seedString = prevSeed;
-			return newMap;
 		}
 
 		private static void ClearRelationsWithPawns(IEnumerable<Pawn> colonists, IEnumerable<int> thingIds) {
@@ -500,11 +477,38 @@ namespace MapReroll {
 				EjectThingFromContainer(thing, referenceMap);
 				var pawn = thing as Pawn;
 				if (pawn?.carryTracker?.CarriedThing != null) {
-					Thing dropped;
-					pawn.carryTracker.TryDropCarriedThing(thing.Position, ThingPlaceMode.Near, out dropped);
+					pawn.carryTracker.TryDropCarriedThing(thing.Position, ThingPlaceMode.Near, out _);
 				}
 				if (thing.Spawned) thing.DeSpawn();
 			}
+		}
+
+		private static MapParent GenerateMapInTile(int tile, IntVec3 size, MapSeed seed, Predicate<int> temporaryTileValidator, Action<MapParent> beforeCleanup) {
+			var prevSeed = Find.World.info.seedString;
+			Find.World.info.seedString = seed.WorldSeed;
+			MapParent existingMapParent = null;
+			try {
+				// move existing map parent in target tile
+				existingMapParent = Find.WorldObjects.MapParentAt(tile);
+				if (existingMapParent != null) {
+					var temporaryTile = TileFinder.RandomSettlementTileFor(Faction.OfPlayer, true, temporaryTileValidator);
+					existingMapParent.Tile = temporaryTile;
+				}
+
+				// generate map in temporary parent
+				var newParent = PlaceNewMapParent(tile);
+				MapGenerator.GenerateMap(size, newParent, newParent.MapGeneratorDef, newParent.ExtraGenStepDefs);
+				
+				// let caller move the new parent before we restore the existing parent to its tile
+				beforeCleanup?.Invoke(newParent);
+				return newParent;
+			} finally {
+				Find.World.info.seedString = prevSeed;
+				if (existingMapParent != null) {
+					existingMapParent.Tile = tile;
+				}
+			}
+			
 		}
 
 		private static MapParent PlaceNewMapParent(int worldTile) {
@@ -513,12 +517,6 @@ namespace MapReroll {
 			newParent.SetFaction(Faction.OfPlayer);
 			Find.WorldObjects.Add(newParent);
 			return newParent;
-		}
-
-		private static int MoveMapParentSomewhereElse(MapParent oldParent) {
-			var originalTile = oldParent.Tile;
-			oldParent.Tile = TileFinder.RandomStartingTile();
-			return originalTile;
 		}
 
 		private static IEnumerable<Thing> GetMapThingsAndPawnsExceptColonists(Map map) {
@@ -555,13 +553,6 @@ namespace MapReroll {
 		private static IEnumerable<Thing> FilterOutThingsWithIds(IEnumerable<Thing> things, IEnumerable<int> idsToRemove) {
 			var idSet = new HashSet<int>(idsToRemove);
 			return things.Where(t => !idSet.Contains(t.thingIDNumber));
-		}
-
-		private static string GenerateNewRerollSeed(string previousSeed) {
-			const int magicNumber = 3;
-			unchecked {
-				return ((previousSeed.GetHashCode() << 1) * magicNumber).ToString();
-			}
 		}
 
 		public static class LoadingMessages {

@@ -1,20 +1,15 @@
 ﻿using System;
-using RimWorld.Planet;
 using Verse;
 
 namespace MapReroll.UI {
 	public class GeneratedPreviewPageProvider : BasePreviewPageProvider {
-		private readonly Map startingMap;
-		private readonly World world;
 		private MapPreviewGenerator previewGenerator;
-		private string lastGeneratedSeed;
+		private MapSeed lastGeneratedSeed;
 		private int numQueuedPreviews;
 
-		public GeneratedPreviewPageProvider(Map currentMap, World world) {
-			startingMap = currentMap;
-			this.world = world;
+		public GeneratedPreviewPageProvider(Map currentMap) {
 			var mapState = RerollToolbox.GetStateForMap(currentMap);
-			lastGeneratedSeed = RerollToolbox.CurrentMapSeed(mapState);
+			lastGeneratedSeed = mapState.MapSeed;
 			previewGenerator = new MapPreviewGenerator();
 		}
 		
@@ -50,14 +45,14 @@ namespace MapReroll.UI {
 
 		private Widget_MapPreview CreatePreview() {
 			lastGeneratedSeed = RerollToolbox.GetNextRerollSeed(lastGeneratedSeed);
-			var promise = previewGenerator.QueuePreviewForSeed(lastGeneratedSeed, startingMap.Tile, world.info.initialMapSize.x, MapRerollController.Instance.PreviewCavesSetting);
+			var promise = previewGenerator.QueuePreviewForSeed(lastGeneratedSeed, MapRerollController.Instance.PreviewCavesSetting);
 			numQueuedPreviews++;
 			promise.Finally(() => numQueuedPreviews--);
 			return new Widget_MapPreview(promise, lastGeneratedSeed) {OnFavoriteToggled = OnFavorite};
 		}
 
 		private void OnFavorite(Widget_MapPreview widget) {
-			if (OnFavoriteToggled != null) OnFavoriteToggled(widget);
+			OnFavoriteToggled?.Invoke(widget);
 		}
 	}
 }

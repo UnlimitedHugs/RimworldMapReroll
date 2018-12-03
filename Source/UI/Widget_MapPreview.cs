@@ -11,7 +11,7 @@ namespace MapReroll.UI {
 
 		private static readonly Color OutlineColor = GenColor.FromHex("616C7A");
 
-		private readonly string seed;
+		private readonly MapSeed seed;
 		private readonly IPromise<Texture2D> promise;
 		
 		private ValueInterpolator spawnInterpolator;
@@ -20,7 +20,7 @@ namespace MapReroll.UI {
 		private Rect zoomedOutRect;
 		private bool zoomedIn;
 
-		public string Seed {
+		public MapSeed Seed {
 			get { return seed; }
 		}
 
@@ -36,7 +36,7 @@ namespace MapReroll.UI {
 
 		public Action<Widget_MapPreview> OnFavoriteToggled { get; set; }
 
-		public Widget_MapPreview(IPromise<Texture2D> promise, string seed) {
+		public Widget_MapPreview(IPromise<Texture2D> promise, MapSeed seed) {
 			PrepareComponents();
 			this.promise = promise;
 			promise.Done(OnPromiseResolved);
