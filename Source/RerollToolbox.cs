@@ -10,7 +10,8 @@ using Verse.Sound;
 
 namespace MapReroll {
 	public enum PaidOperationType {
-		GeneratePreviews, RerollGeysers
+		GeneratePreviews,
+		RerollGeysers
 	}
 
 	public static class RerollToolbox {
@@ -59,23 +60,25 @@ namespace MapReroll {
 				ResetIncidentScenarioParts(Find.Scenario);
 
 				if (Find.TickManager.CurTimeSpeed == TimeSpeed.Paused) {
-					MapRerollController.Instance.PauseOnNextLoad();
+					HugsLibController.Instance.DoLater.DoNextMapLoaded(map =>
+						HugsLibController.Instance.DoLater.DoNextUpdate(() => Find.TickManager.CurTimeSpeed = TimeSpeed.Paused)
+					);
 				}
 
-				var mapSeed = seed ?? GetNextRerollSeed(oldMapState.MapSeed);
+				seed = seed ?? GetNextRerollSeed(oldMapState.MapSeed);
 
 				MapRerollController.HasCavesOverride.OverrideEnabled = true;
 				MapRerollController.HasCavesOverride.HasCaves = Find.World.HasCaves(originalTile);
 
-				var newParent = GenerateMapInTile(originalTile, Find.World.info.initialMapSize, mapSeed, 
-					t => t != originalTile, parent => parent.Tile = originalTile);
+				var newParent = GenerateMapInTile(seed, t => t != originalTile, parent => parent.Tile = originalTile);
 				var newMap = newParent.Map;
-				
+
 				var newMapState = GetStateForMap(newMap);
 				newMapState.RerollGenerated = true;
 				newMapState.PlayerAddedThingIds = oldMapState.PlayerAddedThingIds;
 				newMapState.ResourceBalance = oldMapState.ResourceBalance;
 				newMapState.NumPreviewPagesPurchased = 0;
+				newMapState.MapSeed = seed;
 
 				SwitchToMap(newMap);
 				if (isOnStartingTile) {
@@ -105,8 +108,7 @@ namespace MapReroll {
 		}
 
 		public static MapSeed GetNextRerollSeed(MapSeed baseSeed) {
-			return MapRerollController.Instance.DeterministicRerollsSetting ? 
-				baseSeed.DeriveNextSeed() : MapSeed.MakeRandomSeed(baseSeed.WorldTile, baseSeed.MapSize);
+			return MapRerollController.Instance.DeterministicRerollsSetting ? baseSeed.DeriveNextSeed() : MapSeed.MakeRandomSeed(baseSeed.WorldTile, baseSeed.MapSize);
 		}
 
 		public static RerollMapState GetStateForMap(Map map = null) {
@@ -172,7 +174,6 @@ namespace MapReroll {
 															resourceToll + " resource spots, " + mapResources.Count + " left");
 				if (toll > 0) MapRerollController.Instance.Logger.Message("Failed to consume " + toll + " resource spots.");
 			}
-
 		}
 
 		public static void SubtractResourcePercentage(Map map, float percent) {
@@ -196,7 +197,7 @@ namespace MapReroll {
 			if (cost > 0) {
 				SubtractResourcePercentage(map, cost);
 				if (type == PaidOperationType.GeneratePreviews) {
-					state.NumPreviewPagesPurchased = desiredPreviewsPage+1;
+					state.NumPreviewPagesPurchased = desiredPreviewsPage + 1;
 				}
 			}
 		}
@@ -449,9 +450,8 @@ namespace MapReroll {
 		private static void DiscardFactionBase(MapParent mapParent) {
 			// this will automatically deinit the contained map
 			Current.Game.DeinitAndRemoveMap(mapParent.Map);
-			
 		}
-		
+
 		private static void SwitchToMap(Map newMap) {
 			Current.Game.CurrentMap = newMap;
 			Find.World.renderer.wantedMode = WorldRenderMode.None;
@@ -483,32 +483,32 @@ namespace MapReroll {
 			}
 		}
 
-		private static MapParent GenerateMapInTile(int tile, IntVec3 size, MapSeed seed, Predicate<int> temporaryTileValidator, Action<MapParent> beforeCleanup) {
+		private static MapParent GenerateMapInTile(MapSeed seed, Predicate<int> temporaryTileValidator, Action<MapParent> beforeCleanup) {
 			var prevSeed = Find.World.info.seedString;
 			Find.World.info.seedString = seed.WorldSeed;
 			MapParent existingMapParent = null;
 			try {
 				// move existing map parent in target tile
-				existingMapParent = Find.WorldObjects.MapParentAt(tile);
+				existingMapParent = Find.WorldObjects.MapParentAt(seed.WorldTile);
 				if (existingMapParent != null) {
 					var temporaryTile = TileFinder.RandomSettlementTileFor(Faction.OfPlayer, true, temporaryTileValidator);
 					existingMapParent.Tile = temporaryTile;
 				}
 
 				// generate map in temporary parent
-				var newParent = PlaceNewMapParent(tile);
-				MapGenerator.GenerateMap(size, newParent, newParent.MapGeneratorDef, newParent.ExtraGenStepDefs);
-				
+				var newParent = PlaceNewMapParent(seed.WorldTile);
+				var sizeVec = new IntVec3(seed.MapSize, 0, seed.MapSize);
+				MapGenerator.GenerateMap(sizeVec, newParent, newParent.MapGeneratorDef, newParent.ExtraGenStepDefs);
+
 				// let caller move the new parent before we restore the existing parent to its tile
 				beforeCleanup?.Invoke(newParent);
 				return newParent;
 			} finally {
 				Find.World.info.seedString = prevSeed;
 				if (existingMapParent != null) {
-					existingMapParent.Tile = tile;
+					existingMapParent.Tile = seed.WorldTile;
 				}
 			}
-			
 		}
 
 		private static MapParent PlaceNewMapParent(int worldTile) {

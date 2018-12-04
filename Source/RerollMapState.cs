@@ -37,6 +37,7 @@ namespace MapReroll {
 				}
 				return _mapSeed;
 			}
+			set { _mapSeed = value; }
 		}
 
 		public RerollMapState(Map map) {

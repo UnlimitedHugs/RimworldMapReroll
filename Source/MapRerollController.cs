@@ -67,7 +67,6 @@ namespace MapReroll {
 
 		private readonly MapRerollUIController uiController;
 		private GeyserRerollTool geyserReroll;
-		private bool pauseScheduled;
 		private List<KeyValuePair<int, string>> cachedMapSizes;
 		private bool rerollInProgress;
 
@@ -109,11 +108,6 @@ namespace MapReroll {
 				OnMapRerolled?.Invoke();
 			}
 
-			if (pauseScheduled) {
-				pauseScheduled = false;
-				HugsLibController.Instance.DoLater.DoNextUpdate(() => Find.TickManager.CurTimeSpeed = TimeSpeed.Paused);
-			}
-
 			RerollToolbox.GetStateForMap(map).ConvertLegacyMapSeed();
 			RerollToolbox.TryStopPawnVomiting(map);
 			uiController.MapLoaded(rerollInProgress);
@@ -130,7 +124,7 @@ namespace MapReroll {
 			if (PaidRerollsSetting) {
 				RerollToolbox.SubtractResourcePercentage(Find.CurrentMap, Resources.Settings.MapRerollSettings.geyserRerollCost);
 			}
-			if (OnGeysersRerolled != null) OnGeysersRerolled();
+			OnGeysersRerolled?.Invoke();
 		}
 
 		public bool GeyserRerollInProgress {
@@ -147,10 +141,6 @@ namespace MapReroll {
 
 		public override void OnGUI() {
 			uiController.OnGUI();
-		}
-
-		internal void PauseOnNextLoad() {
-			pauseScheduled = true;
 		}
 
 		internal void OnMapGenerated(Map map, MapGeneratorDef usedMapGenerator) {

@@ -1,5 +1,4 @@
 ﻿using System;
-using Verse;
 
 namespace MapReroll.UI {
 	public class GeneratedPreviewPageProvider : BasePreviewPageProvider {
@@ -7,9 +6,8 @@ namespace MapReroll.UI {
 		private MapSeed lastGeneratedSeed;
 		private int numQueuedPreviews;
 
-		public GeneratedPreviewPageProvider(Map currentMap) {
-			var mapState = RerollToolbox.GetStateForMap(currentMap);
-			lastGeneratedSeed = mapState.MapSeed;
+		public GeneratedPreviewPageProvider(MapSeed initialSeed) {
+			lastGeneratedSeed = initialSeed;
 			previewGenerator = new MapPreviewGenerator();
 		}
 		

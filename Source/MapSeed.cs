@@ -1,16 +1,17 @@
-﻿using System.Security.Cryptography;
+﻿using System;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Verse;
 
 namespace MapReroll {
-	public class MapSeed {
+	public class MapSeed : IEquatable<MapSeed> {
 		private const string MapRerollSeedSeparator = "|";
 		private const string WorldSeedSeparatorPlaceholder = "%PIPE%";
 		private const string GeneratedWorldSeedPrefix = "M";
 		private const int GeneratedSeedLength = 16;
 
-		private static SHA1CryptoServiceProvider hasher = new SHA1CryptoServiceProvider();
+		private static readonly SHA1CryptoServiceProvider hasher = new SHA1CryptoServiceProvider();
 
 		public static MapSeed TryParse(string seed, out string errorMessage) {
 			if (seed.NullOrEmpty()) {
@@ -78,6 +79,10 @@ namespace MapReroll {
 			MapSize = mapSize;
 		}
 
+		public MapSeed Resize(int newSize) {
+			return MapSize == newSize ? this : new MapSeed(WorldSeed, WorldTile, newSize);
+		}
+
 		public MapSeed DeriveNextSeed() {
 			string newWorldSeed;
 			if (int.TryParse(WorldSeed, out _)) {
@@ -100,6 +105,25 @@ namespace MapReroll {
 			s.Append(MapRerollSeedSeparator[0]);
 			s.Append(MapSize);
 			return $"MR{MapRerollUtility.Base64Encode(s.ToString())}X";
+		}
+
+		public string ToString(bool serialized = true) {
+			return serialized ? (this as object).ToString() : 
+				$"[{nameof(MapSeed)} {nameof(WorldSeed)}:{WorldSeed} {nameof(WorldTile)}:{WorldTile} {nameof(MapSize)}:{MapSize}]";
+		}
+
+		public bool Equals(MapSeed other) {
+			if (ReferenceEquals(null, other)) return false;
+			if (ReferenceEquals(this, other)) return true;
+			return string.Equals(WorldSeed, other.WorldSeed) && WorldTile == other.WorldTile && MapSize == other.MapSize;
+		}
+
+		public override bool Equals(object obj) {
+			return Equals(obj as MapSeed);
+		}
+
+		public override int GetHashCode() {
+			return Gen.HashCombineInt(WorldSeed != null ? WorldSeed.GetHashCode() : 0, WorldTile, MapSize, 0);
 		}
 	}
 }

@@ -5,11 +5,11 @@ using UnityEngine;
 
 namespace MapReroll.UI {
 	public abstract class BasePreviewPageProvider : IDisposable {
-		public const int PreviewsPerPage = 9;
+		private const int PreviewsPerPage = 9;
 		private const float PreviewSpacing = 10;
 		private const float PageFlipDuration = .5f;
 
-		protected List<Widget_MapPreview> previews = new List<Widget_MapPreview>();
+		protected readonly List<Widget_MapPreview> previews = new List<Widget_MapPreview>();
 		protected int currentPage;
 		protected Widget_MapPreview overlayPreview;
 		
@@ -25,7 +25,7 @@ namespace MapReroll.UI {
 		}
 
 		public Widget_MapPreview TryFindPreview(MapSeed seed) {
-			return previews.Find(p => p.Seed == seed);
+			return previews.Find(p => p.Seed.Equals(seed));
 		}
 
 		public Widget_MapPreview CurrentZoomedInPreview {

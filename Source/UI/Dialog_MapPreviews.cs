@@ -47,7 +47,9 @@ namespace MapReroll.UI {
 			SetUpTabs();
 			mapState = RerollToolbox.GetStateForMap();
 			favoritesProvider = new ListPreviewPageProvider();
-			previewGenerator = new GeneratedPreviewPageProvider(Find.CurrentMap);
+			var initialSeed = mapState.MapSeed;
+			initialSeed = initialSeed.Resize(Find.World.info.initialMapSize.x);
+			previewGenerator = new GeneratedPreviewPageProvider(initialSeed);
 			previewGenerator.OpenPage(0);
 			previewGenerator.OnFavoriteToggled = OnPreviewFavoriteToggled;
 		}
