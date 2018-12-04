@@ -11,7 +11,7 @@ namespace MapReroll {
 		public static List<MapSize> AvailableMapSizes {
 			get {
 				return _sizes ?? (_sizes = new List<MapSize> {
-					new MapSize(75) {Hidden = true},
+					new MapSize(75) {Label = "Reroll2_EncounterMapSize".Translate()},
 					new MapSize(200) {Label = "MapSizeSmall".Translate()},
 					new MapSize(225),
 					new MapSize(250) {Label = "MapSizeMedium".Translate(), IsDefault = true},

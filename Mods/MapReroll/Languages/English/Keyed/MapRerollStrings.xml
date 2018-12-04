@@ -23,6 +23,8 @@
 	
 	<Reroll2_finishingPreview>Completing preview</Reroll2_finishingPreview>
 	
+	<Reroll2_EncounterMapSize>Encounter</Reroll2_EncounterMapSize>
+	
 	<MapReroll_windowTitle>Map Reroll</MapReroll_windowTitle>
 	<MapReroll_oresLeft>Resources remaining: {0}%</MapReroll_oresLeft>
 	<MapReroll_rerollGeysersBtn>Reroll Geysers{0}</MapReroll_rerollGeysersBtn>

@@ -257,7 +257,7 @@ namespace MapReroll {
 		/// <summary>
 		/// destroying a resource outright causes too much overhead: fog, area reveal, pathing, roof updates, etc
 		///	we just want to replace it. So, we manually strip it out of the map and do some cleanup.
-		/// The following is Thing.Despawn code with the unnecessary (for buildings, ar least) parts stripped out, plus key parts from Building.Despawn 
+		/// The following is Thing.Despawn code with the unnecessary (for buildings, at least) parts stripped out, plus key parts from Building.Despawn 
 		/// TODO: This approach may break with future releases (if thing despawning changes), so it's worth checking over.
 		/// </summary>
 		private static void SneakilyDestroyResource(Thing res) {
