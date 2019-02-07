@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using HugsLib;
+using HugsLib.Utils;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
@@ -258,6 +260,7 @@ namespace MapReroll {
 
 		public static List<KeyValuePair<int, string>> GetAvailableMapSizes() {
 			return new List<KeyValuePair<int, string>> {
+				new KeyValuePair<int, string>(75, null),
 				new KeyValuePair<int, string>(200, "MapSizeSmall".Translate()),
 				new KeyValuePair<int, string>(225, null),
 				new KeyValuePair<int, string>(250, "MapSizeMedium".Translate()),
