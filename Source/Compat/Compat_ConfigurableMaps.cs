@@ -11,7 +11,7 @@ namespace MapReroll.Compat {
 	/// <summary>
 	/// Compatibility tweaks to play nicely with Kiame's Configurable Maps
 	/// </summary>
-	public class Compat_ConfigurableMaps {
+	public static class Compat_ConfigurableMaps {
 
 		public static void Apply(HarmonyInstance harmonyInst) {
 			try {

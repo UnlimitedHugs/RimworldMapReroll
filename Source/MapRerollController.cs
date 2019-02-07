@@ -82,6 +82,7 @@ namespace MapReroll {
 			PrepareSettingsHandles();
 			RerollToolbox.LoadingMessages.UpdateAvailableLoadingMessageCount();
 			Compat_ConfigurableMaps.Apply(HarmonyInst);
+			Compat_PrepareCarefully.Apply(HarmonyInst);
 		}
 
 		private void ApplyDeterministicGenerationPatches() {

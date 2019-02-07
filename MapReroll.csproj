@@ -56,7 +56,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Source\Compat_ConfigurableMaps.cs" />
+    <Compile Include="Source\Compat\Compat_ConfigurableMaps.cs" />
+    <Compile Include="Source\Compat\Compat_PrepareCarefully.cs" />
     <Compile Include="Source\GeyserRerollTool.cs" />
     <Compile Include="Source\Interpolation\InterpolationCurves.cs" />
     <Compile Include="Source\Interpolation\ValueInterpolator.cs" />
