@@ -121,7 +121,7 @@ namespace MapReroll {
 				var arrow = arrows[i];
 				GenDraw.DrawArrowPointingAt(arrow.ArrowTarget);
 			}
-			arrows.RemoveAll(a => Time.unscaledTime > a.ExpireTime);
+			if(!Find.TickManager.Paused) arrows.RemoveAll(a => Time.unscaledTime > a.ExpireTime);
 		}
 
 		private void DrawSteamEffects(List<TimedSteamEffect> effects) {
