@@ -18,6 +18,3 @@ Version.cpp
 build.js
 nunit_random_seed.tmp
 *.DotSettings
-/.vs/MapReroll/v16/Server/sqlite3
-/.vs
-/refs
