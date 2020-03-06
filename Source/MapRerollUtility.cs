@@ -18,7 +18,7 @@ namespace MapReroll {
 
 		public static string WithCostSuffix(string translationKey, PaidOperationType type, int desiredPreviewsPage = 0) {
 			var cost = RerollToolbox.GetOperationCost(type, desiredPreviewsPage);
-			var suffix = cost > 0 ? "Reroll2_costSuffix".Translate(cost.ToString("0.#")) : String.Empty;
+			var suffix = cost > 0 ? "Reroll2_costSuffix".Translate(cost.ToString("0.#")).ToString() : String.Empty;
 			return translationKey.Translate(suffix);
 		}
 
