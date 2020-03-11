@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using Harmony;
+using HarmonyLib;
 using HugsLib;
 using Verse;
 
@@ -17,14 +17,14 @@ namespace MapReroll {
 
 		private static FieldInfo CustomAnimalGenderField;
 
-		public static void Apply(HarmonyInstance harmonyInst) {
+		public static void Apply(Harmony harmonyInst) {
 			// delay until next frame to ensure mod load order independence (after patches are applied)
 			HugsLibController.Instance.DoLater.DoNextUpdate(() => ApplyCompatibilityLayer(harmonyInst));
 		}
 
-		private static void ApplyCompatibilityLayer(HarmonyInstance harmonyInst) {
+		private static void ApplyCompatibilityLayer(Harmony harmonyInst) {
 			try {
-				if (!harmonyInst.HasAnyPatches(PrepareCarefullyHarmonyId)) return;
+				if (!Harmony.HasAnyPatches(PrepareCarefullyHarmonyId)) return;
 				
 				const string customAnimalTypeName = "EdB.PrepareCarefully.ScenPart_CustomAnimal";
 				var customAnimalType = GenTypes.GetTypeInAnyAssembly(customAnimalTypeName);
