@@ -42,7 +42,7 @@ namespace MapReroll {
 		private RerollWorldState _worldState;
 
 		public RerollWorldState WorldState {
-			get { return _worldState ?? (_worldState = UtilityWorldObjectManager.GetUtilityWorldObject<RerollWorldState>()); }
+			get { return _worldState ?? (_worldState = Find.World.GetComponent<RerollWorldState>()); }
 		}
 
 		public MapRerollUIController UIController {
