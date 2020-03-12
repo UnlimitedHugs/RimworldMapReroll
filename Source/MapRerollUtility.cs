@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Verse;
 
@@ -31,6 +32,12 @@ namespace MapReroll {
 			loopCount++;
 			if (loopCount > loopLimit) {
 				throw new Exception("Infinite loop detected");
+			}
+		}
+
+		public static IEnumerable<T> ExceptNull<T>(this IEnumerable<T> source) {
+			foreach (var item in source) {
+				if (item != null) yield return item;
 			}
 		}
 	}
