@@ -364,6 +364,7 @@ namespace MapReroll {
 		}
 
 		private static GameInitData MakeInitData(RerollWorldState state, Map sourceMap) {
+			var colonists = GetAllPlayerPawnsOnMap(sourceMap).Where(p => p.IsColonist).ToList();
 			return new GameInitData {
 				permadeath = Find.GameInfo.permadeathMode,
 				mapSize = sourceMap.Size.x,
@@ -371,7 +372,8 @@ namespace MapReroll {
 				startingSeason = Season.Undefined,
 				startedFromEntry = true,
 				startingTile = state.StartingTile,
-				startingAndOptionalPawns = GetAllPlayerPawnsOnMap(sourceMap).Where(p => p.IsColonist).ToList()
+				startingAndOptionalPawns = colonists,
+				startingPawnCount = colonists.Count
 			};
 		}
 

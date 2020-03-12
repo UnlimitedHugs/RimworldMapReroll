@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Reflection;
-using Harmony;
+using HarmonyLib;
 using Verse;
 
 namespace MapReroll.Patches {
@@ -11,14 +11,14 @@ namespace MapReroll.Patches {
 		private const int DeterministicPatchPriority = 10;
 		private static bool generatorSeedPushed;
 
-		public static void InstrumentMethodForDeterministicGeneration(MethodInfo method, MethodInfo prefix, HarmonyInstance harmony) {
+		public static void InstrumentMethodForDeterministicGeneration(MethodInfo method, MethodInfo prefix, Harmony harmony) {
 			if (method == null) {
 				MapRerollController.Instance.Logger.Error($"Cannot instrument null method with prefix {prefix}: {Environment.StackTrace}");
 				return;
 			}
 			harmony.Patch(method, 
-				new HarmonyMethod(prefix) {prioritiy = DeterministicPatchPriority},
-				new HarmonyMethod(((Action)PopDeterministicRandState).Method) {prioritiy = -DeterministicPatchPriority});
+				new HarmonyMethod(prefix) {priority = DeterministicPatchPriority},
+				new HarmonyMethod(((Action)PopDeterministicRandState).Method) { priority = -DeterministicPatchPriority});
 		}
 
 		public static void DeterministicBeachSetup(Map map) {

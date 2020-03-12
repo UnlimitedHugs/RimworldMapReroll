@@ -165,7 +165,7 @@ namespace MapReroll.UI {
 
 				if (pageProvider.PageIsAvailable(pageProvider.CurrentPage + numPagesToTurn)) {
 					var paidNextBtnLabel = MapRerollUtility.WithCostSuffix("Reroll2_previews_nextPage", PaidOperationType.GeneratePreviews, pageProvider.CurrentPage + numPagesToTurn);
-					var nextBtnLabel = activeTab == previewsTab ? paidNextBtnLabel : "Reroll2_previews_nextPage".Translate("");
+					var nextBtnLabel = activeTab == previewsTab ? paidNextBtnLabel : "Reroll2_previews_nextPage".Translate("").ToString();
 					if (Widgets.ButtonText(new Rect(inRect.xMax - PageButtonSize.x, inRect.yMin, PageButtonSize.x, inRect.height), nextBtnLabel)) {
 						PageForward(pageProvider, numPagesToTurn);
 					}
