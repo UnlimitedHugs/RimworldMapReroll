@@ -111,6 +111,7 @@ namespace MapReroll {
 				}
 				workHandle.Close();
 				mainThreadHandle.Close();
+				disposeHandle.Close();
 				mainThreadHandle = disposeHandle = workHandle = null;
 			} catch (Exception e) {
 				MapRerollController.Instance.Logger.Error("Exception in preview generator thread: " + e);
@@ -126,7 +127,7 @@ namespace MapReroll {
 			}
 			disposed = true;
 			queuedRequests.Clear();
-			disposeHandle.Close();
+			disposeHandle.Set();
 		}
 
 		/// <summary>

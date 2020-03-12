@@ -32,7 +32,7 @@ namespace MapReroll {
 
 			var oldMapState = GetStateForMap(oldMap);
 			var playerPawns = GetAllPlayerPawnsOnMap(oldMap); // includes animals
-			var colonists = GetAllPlayerPawnsOnMap(oldMap).Where(p => p.IsColonist).ToList();
+			var colonists = GetAllColonistsOnMap(oldMap).ToList();
 			IEnumerable<Thing> nonGeneratedThings = ResolveThingsFromIds(oldMap, oldMapState.PlayerAddedThingIds).ToList();
 
 			// discard the old map in main thread
@@ -48,7 +48,7 @@ namespace MapReroll {
 						MapRerollController.Instance.Logger.Warning("Caught exception while trying to destroy world things from discarded map: " + e);
 					}
 				}
-				DespawnThings(playerPawns.OfType<Thing>(), oldMap);
+				DespawnThings(playerPawns.ExceptNull(), oldMap);
 				DespawnThings(nonGeneratedThings, oldMap);
 				DiscardFactionBase(oldParent);
 				StripMap(oldMap);
@@ -258,6 +258,7 @@ namespace MapReroll {
 
 		public static List<KeyValuePair<int, string>> GetAvailableMapSizes() {
 			return new List<KeyValuePair<int, string>> {
+				new KeyValuePair<int, string>(75, null),
 				new KeyValuePair<int, string>(200, "MapSizeSmall".Translate()),
 				new KeyValuePair<int, string>(225, null),
 				new KeyValuePair<int, string>(250, "MapSizeMedium".Translate()),
@@ -361,6 +362,7 @@ namespace MapReroll {
 		}
 
 		private static GameInitData MakeInitData(RerollWorldState state, Map sourceMap) {
+			var colonists = GetAllColonistsOnMap(sourceMap).ToList();
 			return new GameInitData {
 				permadeath = Find.GameInfo.permadeathMode,
 				mapSize = sourceMap.Size.x,
@@ -368,7 +370,8 @@ namespace MapReroll {
 				startingSeason = Season.Undefined,
 				startedFromEntry = true,
 				startingTile = state.StartingTile,
-				startingAndOptionalPawns = GetAllPlayerPawnsOnMap(sourceMap).Where(p => p.IsColonist).ToList()
+				startingAndOptionalPawns = colonists,
+				startingPawnCount = colonists.Count
 			};
 		}
 
@@ -495,6 +498,10 @@ namespace MapReroll {
 			return map.mapPawns.PawnsInFaction(Faction.OfPlayer).ToList();
 		}
 
+		private static IEnumerable<Pawn> GetAllColonistsOnMap(Map map) {
+			return GetAllPlayerPawnsOnMap(map).Where(p => p.IsColonist);
+		}
+
 		private static void DespawnThings(IEnumerable<Thing> things, Map referenceMap) {
 			foreach (var thing in things) {
 				EjectThingFromContainer(thing, referenceMap);
@@ -522,8 +529,12 @@ namespace MapReroll {
 		}
 
 		private static IEnumerable<Thing> GetMapThingsAndPawnsExceptColonists(Map map) {
-			var colonists = GetAllPlayerPawnsOnMap(map).Where(p => p.IsColonist).ToArray();
-			return FilterOutWornApparel(GetAllHaulableThingsOnMap(map), colonists).Union(map.mapPawns.AllPawns.Except(colonists).OfType<Thing>());
+			var colonists = GetAllColonistsOnMap(map).ToArray();
+			return FilterOutWornApparel(GetAllHaulableThingsOnMap(map), colonists)
+				.Union(map.mapPawns.AllPawns
+					.Except(colonists)
+					.ExceptNull()
+				);
 		}
 
 		private static List<Thing> GetAllHaulableThingsOnMap(Map map) {
@@ -540,7 +551,7 @@ namespace MapReroll {
 		}
 
 		private static IEnumerable<Thing> FilterOutWornApparel(IEnumerable<Thing> things, IEnumerable<Pawn> wornByPawns) {
-			var apparel = wornByPawns.SelectMany(c => c.apparel.WornApparel).OfType<Thing>();
+			var apparel = wornByPawns.SelectMany(c => c.apparel.WornApparel).ExceptNull();
 			return things.Except(apparel);
 		}
 

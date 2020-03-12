@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Linq;
-using Harmony;
+using HarmonyLib;
 using HugsLib;
 using MapReroll.UI;
 using RimWorld;
@@ -11,9 +11,9 @@ namespace MapReroll.Compat {
 	/// <summary>
 	/// Compatibility tweaks to play nicely with Kiame's Configurable Maps
 	/// </summary>
-	public class Compat_ConfigurableMaps {
+	public static class Compat_ConfigurableMaps {
 
-		public static void Apply(HarmonyInstance harmonyInst) {
+		public static void Apply(Harmony harmonyInst) {
 			try {
 				if (GenTypes.GetTypeInAnyAssembly("ConfigurableMaps.HarmonyPatches") == null) return; // mod is not loaded
 				Dialog_MapPreviews.DialogOnGUI -= ExtraMapPreviewsDialogOnGUI;

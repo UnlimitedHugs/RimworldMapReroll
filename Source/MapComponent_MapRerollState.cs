@@ -9,7 +9,6 @@ namespace MapReroll {
 		public RerollMapState State;
 		
 		public MapComponent_MapRerollState(Map map) : base(map) {
-			this.EnsureIsActive();
 		}
 
 		public override void ExposeData() {

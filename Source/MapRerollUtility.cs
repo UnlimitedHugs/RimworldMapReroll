@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Verse;
 
@@ -18,7 +19,7 @@ namespace MapReroll {
 
 		public static string WithCostSuffix(string translationKey, PaidOperationType type, int desiredPreviewsPage = 0) {
 			var cost = RerollToolbox.GetOperationCost(type, desiredPreviewsPage);
-			var suffix = cost > 0 ? "Reroll2_costSuffix".Translate(cost.ToString("0.#")) : String.Empty;
+			var suffix = cost > 0 ? "Reroll2_costSuffix".Translate(cost.ToString("0.#")).ToString() : String.Empty;
 			return translationKey.Translate(suffix);
 		}
 
@@ -31,6 +32,12 @@ namespace MapReroll {
 			loopCount++;
 			if (loopCount > loopLimit) {
 				throw new Exception("Infinite loop detected");
+			}
+		}
+
+		public static IEnumerable<T> ExceptNull<T>(this IEnumerable<T> source) {
+			foreach (var item in source) {
+				if (item != null) yield return item;
 			}
 		}
 	}

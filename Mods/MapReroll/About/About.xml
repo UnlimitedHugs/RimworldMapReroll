@@ -2,9 +2,13 @@
 <ModMetaData>
 	<name>Map Reroll</name>
 	<author>UnlimitedHugs</author>
-	<targetVersion>1.0.0</targetVersion>
+	<supportedVersions>
+		<li>1.0</li>
+		<li>1.1</li>
+	</supportedVersions>
 	<url>https://ludeon.com/forums/index.php?topic=18073.0</url>
-		<description>Version: 2.4.0
+	<packageId>UnlimitedHugs.MapReroll</packageId>
+	<description>Version: 2.5.0
 	
 &lt;size=20&gt;Description&lt;/size&gt;
 Allows to randomize your starting maps and geyser locations until you find something you like.
@@ -17,5 +21,15 @@ Each page of previews and geyser reroll operation will cost you an amount of unm
 
 The resource cost is optional, and can be disabled in the Options &gt; Mod Settings menu.
 </description>	
-	
+	<modDependencies>
+		<li>
+			<packageId>UnlimitedHugs.HugsLib</packageId>
+			<displayName>HugsLib</displayName>
+			<downloadUrl>https://github.com/UnlimitedHugs/RimworldHugsLib/releases/latest</downloadUrl>
+			<steamWorkshopUrl>steam://url/CommunityFilePage/818773962</steamWorkshopUrl>
+		</li>
+	</modDependencies>
+	<loadAfter>
+		<li>UnlimitedHugs.HugsLib</li>
+	</loadAfter>
 </ModMetaData>

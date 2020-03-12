@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Harmony;
+using HarmonyLib;
 using HugsLib;
 using HugsLib.Settings;
 using HugsLib.Utils;
@@ -42,7 +42,7 @@ namespace MapReroll {
 		private RerollWorldState _worldState;
 
 		public RerollWorldState WorldState {
-			get { return _worldState ?? (_worldState = UtilityWorldObjectManager.GetUtilityWorldObject<RerollWorldState>()); }
+			get { return _worldState ?? (_worldState = Find.World.GetComponent<RerollWorldState>()); }
 		}
 
 		public MapRerollUIController UIController {
@@ -82,6 +82,7 @@ namespace MapReroll {
 			PrepareSettingsHandles();
 			RerollToolbox.LoadingMessages.UpdateAvailableLoadingMessageCount();
 			Compat_ConfigurableMaps.Apply(HarmonyInst);
+			Compat_PrepareCarefully.Apply(HarmonyInst);
 		}
 
 		private void ApplyDeterministicGenerationPatches() {
