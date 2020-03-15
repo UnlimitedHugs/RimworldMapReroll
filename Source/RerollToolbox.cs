@@ -612,14 +612,15 @@ namespace MapReroll {
 			}
 
 			private static void SetLoadingScreenMessage(string message) {
-				var original = LanguageDatabase.activeLanguage.keyedReplacements[StockLoadingMessageKey];
-				LanguageDatabase.activeLanguage.keyedReplacements[StockLoadingMessageKey] = new LoadedLanguage.KeyedReplacement {
-					fileSource = original.fileSource,
-					fileSourceFullPath = original.fileSourceFullPath,
-					fileSourceLine = original.fileSourceLine,
-					key = original.key,
-					value = message
-				};
+				LoadedLanguage.KeyedReplacement TryGetReplacementFromLanguage(LoadedLanguage lang) {
+					return lang?.keyedReplacements.TryGetValue(StockLoadingMessageKey);
+				}
+
+				var replacement = TryGetReplacementFromLanguage(LanguageDatabase.activeLanguage)
+								?? TryGetReplacementFromLanguage(LanguageDatabase.defaultLanguage);
+				if (replacement != null) {
+					replacement.value = message;
+				}
 			}
 
 			private static int CountAvailableLoadingMessages() {
