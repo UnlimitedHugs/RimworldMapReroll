@@ -48,13 +48,16 @@
 	<setting_mapGeneratorMode_desc>When set to "accurate previews", the map generator will produce slightly different maps than the stock game. Setting this to "original map generator" is useful if you're using a vanilla world seed to get a specific map.</setting_mapGeneratorMode_desc>
 	<setting_mapGeneratorMode_AccuratePreviews>Accurate previews</setting_mapGeneratorMode_AccuratePreviews>
 	<setting_mapGeneratorMode_OriginalGenerator>Original map generator</setting_mapGeneratorMode_OriginalGenerator>
-	<setting_changeMapSize_label>Change default map size</setting_changeMapSize_label>
-	<setting_changeMapSize_desc>This will change the size of the maps generated whenever you reroll a map or settle on a new world tile.</setting_changeMapSize_desc>
-	<setting_changeMapSize_noWorld>A game must be loaded</setting_changeMapSize_noWorld>
 	<setting_geyserArrows_label>Show geyser arrows</setting_geyserArrows_label>
 	<setting_geyserArrows_desc>Highlights new geysers with arrows when rerolling them.</setting_geyserArrows_desc>
 	<setting_previewCaves_label>Reveal caves on previews</setting_previewCaves_label>
 	<setting_previewCaves_desc>When enabled, the previews will show cave systems, including hidden ones. Turning this off will keep them hidden and make preview generation a bit faster.</setting_previewCaves_desc>
+	<setting_mapActions_label>Map actions</setting_mapActions_label>
+	<setting_mapActions_desc>Actions that can be performed on the currently visible map.</setting_mapActions_desc>
+	<setting_changeMapSize_btn>Map size: {0}</setting_changeMapSize_btn>
+	<setting_changeMapSize_desc>This will change the size of the maps generated whenever you reroll a map or settle on a new world tile.</setting_changeMapSize_desc>
+	<setting_reenableRerolls_btn>Re-enable rerolls</setting_reenableRerolls_btn>
+	<setting_reenableRerolls_desc>This will undo "Keep this map" for the currently visible map.</setting_reenableRerolls_desc>
 	
 	<!-- optional loading messages, vanilla loading message will be used if none are found -->
 	
