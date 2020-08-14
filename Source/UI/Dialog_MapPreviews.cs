@@ -120,7 +120,7 @@ namespace MapReroll.UI {
 			if (currentZoomedPreview != null) {
 				// zoomed in controls
 				var generateBtnRect = new Rect(inRect.xMin, inRect.yMin, GenerateButtonSize.x, inRect.height);
-				MapRerollUtility.DrawWithGUIColor(GenerateButtonColor, () => {
+				using (MapRerollUtility.GUIColorContext(GenerateButtonColor)) {
 					if (Widgets.ButtonText(generateBtnRect, "Reroll2_previews_generateMap".Translate())) {
 						SoundDefOf.Click.PlayOneShotOnCamera();
 						Close();
@@ -129,8 +129,7 @@ namespace MapReroll.UI {
 							MapRerollController.Instance.RerollMap(currentZoomedPreview.Seed);
 						});
 					}
-				});
-
+				}
 				var favoritesControlRect = new Rect(generateBtnRect.xMax + ElementSpacing, inRect.yMin, FavoriteControlSize.x, inRect.height);
 				var favoriteCheckRect = new Rect(favoritesControlRect.xMin + ElementSpacing, favoritesControlRect.center.y - FavoriteControlSize.y / 2f, FavoriteControlSize.y, FavoriteControlSize.y);
 				var checkLabelRect = new Rect(favoriteCheckRect.x + FavoriteControlSize.y + ElementSpacing, favoriteCheckRect.y - 7f, FavoriteControlSize.x, inRect.height);

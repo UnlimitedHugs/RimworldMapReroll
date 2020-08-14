@@ -52,10 +52,9 @@
 	<setting_geyserArrows_desc>Highlights new geysers with arrows when rerolling them.</setting_geyserArrows_desc>
 	<setting_previewCaves_label>Reveal caves on previews</setting_previewCaves_label>
 	<setting_previewCaves_desc>When enabled, the previews will show cave systems, including hidden ones. Turning this off will keep them hidden and make preview generation a bit faster.</setting_previewCaves_desc>
-	<setting_mapActions_label>Map actions</setting_mapActions_label>
-	<setting_mapActions_desc>Actions that can be performed on the currently visible map.</setting_mapActions_desc>
-	<setting_changeMapSize_btn>Map size: {0}</setting_changeMapSize_btn>
-	<setting_changeMapSize_desc>This will change the size of the maps generated whenever you reroll a map or settle on a new world tile.</setting_changeMapSize_desc>
+	<setting_newMapSize_label>New map size</setting_newMapSize_label>
+	<setting_newMapSize_desc>Changes the size of generated maps when rerolling or settling a new world tile.\nSizes larger than 400 are not officially supported, but are viable on more powerful PCs. Keep in mind that a size 400 map is 4 times as big as a size 200.</setting_newMapSize_desc>
+	<setting_newMapSize_noWorld>Load or start a game to use this setting</setting_newMapSize_noWorld>
 	<setting_reenableRerolls_btn>Re-enable rerolls</setting_reenableRerolls_btn>
 	<setting_reenableRerolls_desc>This will undo "Keep this map" for the currently visible map.</setting_reenableRerolls_desc>
 	

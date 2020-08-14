@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
 using HugsLib;
@@ -67,8 +66,8 @@ namespace MapReroll {
 		private readonly MapRerollUIController uiController;
 		private GeyserRerollTool geyserReroll;
 		private bool pauseScheduled;
-		private List<(int size, string btnLabel, string optionLabel)> cachedMapSizeLabels;
 		private bool rerollInProgress;
+		private MapRerollUtility.SpinnerInputState mapSizeInputState;
 
 		private MapRerollController() {
 			Instance = this;
@@ -188,55 +187,46 @@ namespace MapReroll {
 
 			MapGeneratorModeSetting = Settings.GetHandle("mapGeneratorMode", "setting_mapGeneratorMode_label".Translate(), "setting_mapGeneratorMode_desc".Translate(), MapGeneratorMode.AccuratePreviews, null, "setting_mapGeneratorMode_");
 
-			var mapActions = Settings.GetHandle<bool>("mapActions", "setting_mapActions_label".Translate(), "setting_mapActions_desc".Translate());
+			var worldMapSize = Settings.GetHandle("newMapSize", "setting_newMapSize_label".Translate(),
+				"setting_newMapSize_desc".Translate(), 0);
+			worldMapSize.Unsaved = true;
+			worldMapSize.CanBeReset = false;
+			worldMapSize.CustomDrawer = rect => {
+				var worldInfo = Current.Game?.World?.info;
+				var currentSize = worldInfo?.initialMapSize.x ?? 0;
+				var newSize = MapRerollUtility.DrawIntSpinnerInput(rect, currentSize, 
+					50, 5000, 25, worldInfo != null, ref mapSizeInputState);
+				if (currentSize != newSize && worldInfo != null) {
+					SetWorldDefaultMapSize(newSize);
+				}
+				return false;
+			};
+			worldMapSize.ContextMenuEntries = RerollToolbox.GetAvailableMapSizes().Where(kv => kv.Value != null)
+				.Select(kv => new ContextMenuEntry($"{kv.Value} ({kv.Key})", () => SetWorldDefaultMapSize(kv.Key)));
+			
+			var mapActions = Settings.GetHandle<bool>("mapActions", string.Empty, string.Empty);
 			mapActions.Unsaved = true;
-			mapActions.CustomDrawerHeight = 64f;
 			mapActions.CustomDrawer = MapActionsCustomDrawer;
 		}
 
 		private bool MapActionsCustomDrawer(Rect rect) {
-			DrawMapSizeButton(rect.TopHalf(), "setting_changeMapSize_btn", "setting_changeMapSize_desc");
-			DrawReenableRerollsButton(rect.BottomHalf(), "setting_reenableRerolls_btn", "setting_reenableRerolls_desc");
+			DrawReenableRerollsButton(rect, "setting_reenableRerolls_btn", "setting_reenableRerolls_desc");
 			return false;
-
-			void DrawMapSizeButton(Rect btnRect, string labelKey, string tooltipKey) {
-				var world = Current.Game != null ? Current.Game.World : null;
-				var sizes = cachedMapSizeLabels ?? (cachedMapSizeLabels = PrepareMapSizeLabels());
-				var buttonActive = world != null;
-				string buttonLabel;
-				if (buttonActive) {
-					var currentIndex = sizes.FindIndex(p => p.size == world.info.initialMapSize.x);
-					if (currentIndex < 0) currentIndex = 0;
-					buttonLabel = sizes[currentIndex].btnLabel;
-				} else {
-					buttonLabel = labelKey.Translate("");
-				}
-				if (MapRerollUtility.DrawActiveButton(btnRect, buttonLabel, tooltipKey, buttonActive) && buttonActive) {
-					Find.WindowStack.Add(new FloatMenu(sizes.Select(p =>
-						new FloatMenuOption(p.optionLabel,
-							() => world.info.initialMapSize = new IntVec3(p.size, 1, p.size))
-					).ToList()));
-				}
-				TooltipHandler.TipRegion(btnRect, tooltipKey.Translate());
-
-				List<(int size, string btnLabel, string optionLabel)> PrepareMapSizeLabels() {
-					return RerollToolbox.GetAvailableMapSizes().Select(pair =>
-						(size: pair.Key, btnLabel: labelKey.Translate(pair.Key).RawText,
-							optionLabel: $"{pair.Key}x{pair.Key}{(pair.Value != null ? " - " + pair.Value : null)}")
-					).ToList();
-				}
-			}
-
+			
 			void DrawReenableRerollsButton(Rect btnRect, string labelKey, string tooltipKey) {
 				var mapState = Find.CurrentMap?.GetComponent<MapComponent_MapRerollState>()?.State;
 				var buttonActive = mapState != null && mapState.MapCommitted;
-				if (MapRerollUtility.DrawActiveButton(btnRect, labelKey.Translate(), tooltipKey, buttonActive)
+				if (MapRerollUtility.DrawActiveButton(btnRect, labelKey.Translate(), buttonActive, tooltipKey)
 					&& buttonActive) {
 					mapState.MapCommitted = false;
 					uiController.ResetCache();
 				}
-				TooltipHandler.TipRegion(btnRect, tooltipKey.Translate());
 			}
+		}
+
+		private static void SetWorldDefaultMapSize(int size) {
+			var worldInfo = Current.Game?.World?.info;
+			if(worldInfo != null) worldInfo.initialMapSize = new IntVec3(size, 1, size);
 		}
 	}
 
