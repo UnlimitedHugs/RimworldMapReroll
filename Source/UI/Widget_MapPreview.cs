@@ -134,7 +134,7 @@ namespace MapReroll.UI {
 		}
 
 		private void DrawOutline(Rect rect) {
-			using (MapRerollUtility.GUIColorContext(OutlineColor)) {
+			using (GUIStateContext.Set(OutlineColor)) {
 				Widgets.DrawBox(rect);
 			}
 		}

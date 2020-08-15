@@ -100,9 +100,9 @@ namespace MapReroll.UI {
 			} else {
 				status = "Reroll2_previews_statusComplete".Translate(previewGenerator.PreviewCount);
 			}
-			Text.Anchor = TextAnchor.MiddleLeft;
-			Widgets.Label(inRect, status);
-			Text.Anchor = TextAnchor.UpperLeft;
+			using (GUIStateContext.Set(anchor: TextAnchor.MiddleLeft)) {
+				Widgets.Label(inRect, status);
+			}
 		}
 
 		private void DoPreviewsContents(Rect previewsArea, Rect bottomBar) {
@@ -120,7 +120,7 @@ namespace MapReroll.UI {
 			if (currentZoomedPreview != null) {
 				// zoomed in controls
 				var generateBtnRect = new Rect(inRect.xMin, inRect.yMin, GenerateButtonSize.x, inRect.height);
-				using (MapRerollUtility.GUIColorContext(GenerateButtonColor)) {
+				using (GUIStateContext.Set(GenerateButtonColor)) {
 					if (Widgets.ButtonText(generateBtnRect, "Reroll2_previews_generateMap".Translate())) {
 						SoundDefOf.Click.PlayOneShotOnCamera();
 						Close();
@@ -141,9 +141,9 @@ namespace MapReroll.UI {
 				if (Mouse.IsOver(favoritesControlRect)) {
 					Widgets.DrawHighlight(favoritesControlRect);
 				}
-				Text.Anchor = TextAnchor.MiddleLeft;
-				Widgets.Label(checkLabelRect, "Reroll2_previews_favoriteCheck".Translate());
-				Text.Anchor = TextAnchor.UpperLeft;
+				using (GUIStateContext.Set(anchor: TextAnchor.MiddleLeft)) {
+					Widgets.Label(checkLabelRect, "Reroll2_previews_favoriteCheck".Translate());
+				}
 
 				var zoomOutBtnRect = new Rect(inRect.xMax - PageButtonSize.x, inRect.yMin, PageButtonSize.x, inRect.height);
 				if (Widgets.ButtonText(zoomOutBtnRect, "Reroll2_previews_zoomOut".Translate())) {
@@ -158,9 +158,9 @@ namespace MapReroll.UI {
 					}
 				}
 
-				Text.Anchor = TextAnchor.MiddleCenter;
-				Widgets.Label(inRect, "Page " + (pageProvider.CurrentPage + 1));
-				Text.Anchor = TextAnchor.UpperLeft;
+				using (GUIStateContext.Set(anchor: TextAnchor.MiddleCenter)) {
+					Widgets.Label(inRect, "Page " + (pageProvider.CurrentPage + 1));
+				}
 
 				if (pageProvider.PageIsAvailable(pageProvider.CurrentPage + numPagesToTurn)) {
 					var paidNextBtnLabel = MapRerollUtility.WithCostSuffix("Reroll2_previews_nextPage", PaidOperationType.GeneratePreviews, pageProvider.CurrentPage + numPagesToTurn);

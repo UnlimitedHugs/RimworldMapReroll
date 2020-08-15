@@ -7,23 +7,6 @@ namespace MapReroll {
 	public static class MapRerollUtility {
 		private static readonly Color DisabledColor = new Color(0.37f, 0.37f, 0.37f, 0.8f);
 
-		internal static DrawWithColorContext GUIColorContext(Color color) {
-			var context = new DrawWithColorContext(GUI.color);
-			GUI.color = color;
-			return context;
-		}
-
-		// safe to use with the "using" statement- will not cause boxing due to compiler optimization
-		internal readonly struct DrawWithColorContext : IDisposable {
-			private readonly Color originalColor;
-			public DrawWithColorContext(Color originalColor) {
-				this.originalColor = originalColor;
-			}
-			public void Dispose() {
-				GUI.color = originalColor;
-			}
-		}
-
 		public static string WithCostSuffix(string translationKey, PaidOperationType type, int desiredPreviewsPage = 0) {
 			var cost = RerollToolbox.GetOperationCost(type, desiredPreviewsPage);
 			var suffix = cost > 0 ? "Reroll2_costSuffix".Translate(cost.ToString("0.#")).ToString() : String.Empty;
@@ -48,12 +31,9 @@ namespace MapReroll {
 		}
 
 		private static void DrawDisabledButton(Rect btnRect, string label) {
-			using (GUIColorContext(DisabledColor)) {
+			using (GUIStateContext.Set(DisabledColor, TextAnchor.MiddleCenter)) {
 				Widgets.DrawAtlas(btnRect, Resources.Textures.ButtonAtlas);
-				var prevAnchor = Text.Anchor;
-				Text.Anchor = TextAnchor.MiddleCenter;
-				Widgets.Label(btnRect, label);
-				Text.Anchor = prevAnchor;
+				Widgets.Label(btnRect, label);					
 			}
 		}
 
@@ -80,7 +60,7 @@ namespace MapReroll {
 				GUI.SetNextControlName(state.ControlName);
 				GUI.enabled = enabled;
 				string newStringValue;
-				using (GUIColorContext(enabled ? Color.white : DisabledColor)) {
+				using (GUIStateContext.Set(enabled ? Color.white : DisabledColor)) {
 					newStringValue = Widgets.TextField(rect, enabled ? state.StringValue : string.Empty);
 				}
 				GUI.enabled = true;
