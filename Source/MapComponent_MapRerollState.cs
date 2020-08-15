@@ -1,5 +1,4 @@
-﻿using HugsLib.Utils;
-using Verse;
+﻿using Verse;
 
 namespace MapReroll {
 	/// <summary>

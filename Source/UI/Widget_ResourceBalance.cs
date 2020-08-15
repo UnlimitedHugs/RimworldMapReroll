@@ -64,9 +64,13 @@ namespace MapReroll.UI {
 			if (Event.current.type != EventType.Repaint) return;
 			var balance = GetResourceBalance(map);
 			interpolator.Update();
-			if (balance != lastSeenBalance) {
+			if (!ApproximatelyEqual(balance, lastSeenBalance)) {
 				lastSeenBalance = balance;
 				interpolator.StartInterpolation(balance, InterpolationDuration, CurveType.CubicInOut);
+			}
+
+			bool ApproximatelyEqual(float num1, float num2) {
+				return Mathf.Abs(num1 - num2) <= float.Epsilon;
 			}
 		}
 	}
