@@ -6,21 +6,19 @@ using Verse;
 namespace MapReroll {
 	public static class MapRerollUtility {
 		private static readonly Color DisabledColor = new Color(0.37f, 0.37f, 0.37f, 0.8f);
-		
-		internal static IDisposable GUIColorContext(Color color) {
+
+		internal static DrawWithColorContext GUIColorContext(Color color) {
 			var context = new DrawWithColorContext(GUI.color);
 			GUI.color = color;
-			// despite the apparent interface cast, this does not result in an allocation
 			return context;
 		}
 
-		private readonly struct DrawWithColorContext : IDisposable {
+		// safe to use with the "using" statement- will not cause boxing due to compiler optimization
+		internal readonly struct DrawWithColorContext : IDisposable {
 			private readonly Color originalColor;
-
 			public DrawWithColorContext(Color originalColor) {
 				this.originalColor = originalColor;
 			}
-
 			public void Dispose() {
 				GUI.color = originalColor;
 			}
