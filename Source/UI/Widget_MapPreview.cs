@@ -124,7 +124,7 @@ namespace MapReroll.UI {
 		}
 
 		private void OnZoomInterpolatorFinished(ValueInterpolator interpolator, float finalValue, float interpolationDuration, InterpolationCurves.Curve interpolationCurve) {
-			zoomedIn = finalValue == 1;
+			zoomedIn = (finalValue >= 1 - float.Epsilon);
 		}
 
 		private void OnPromiseResolved(Texture2D tex) {
@@ -134,7 +134,9 @@ namespace MapReroll.UI {
 		}
 
 		private void DrawOutline(Rect rect) {
-			MapRerollUtility.DrawWithGUIColor(OutlineColor, () => Widgets.DrawBox(rect));
+			using (GUIStateContext.Set(OutlineColor)) {
+				Widgets.DrawBox(rect);
+			}
 		}
 
 		public bool Equals(Widget_MapPreview other) {

@@ -146,7 +146,7 @@ namespace MapReroll {
 		}
 
 		public static void ReduceMapResources(Map map, float consumePercent, float resourcesPercentBalance) {
-			if (resourcesPercentBalance == 0) return;
+			if (resourcesPercentBalance < float.Epsilon) return;
 			var rockTypes = Find.World.NaturalRockTypesIn(map.Tile).ToList();
 			var mapResources = GetAllResourcesOnMap(map);
 
@@ -507,8 +507,7 @@ namespace MapReroll {
 				EjectThingFromContainer(thing, referenceMap);
 				var pawn = thing as Pawn;
 				if (pawn?.carryTracker?.CarriedThing != null) {
-					Thing dropped;
-					pawn.carryTracker.TryDropCarriedThing(thing.Position, ThingPlaceMode.Near, out dropped);
+					pawn.carryTracker.TryDropCarriedThing(thing.Position, ThingPlaceMode.Near, out _);
 				}
 				if (thing.Spawned) thing.DeSpawn();
 			}

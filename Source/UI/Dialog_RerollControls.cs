@@ -62,12 +62,11 @@ namespace MapReroll.UI {
 				Close();
 			}
 			var contentsRect = inRect.ContractedBy(ContentsPadding);
-			Text.Anchor = TextAnchor.MiddleCenter;
-			Text.Font = GameFont.Medium;
-			var headerRect = new Rect(contentsRect.x, contentsRect.y, contentsRect.width, 30f);
-			Widgets.Label(headerRect, "MapReroll_windowTitle".Translate());
-			Text.Font = GameFont.Small;
-			Text.Anchor = TextAnchor.UpperLeft;
+			Rect headerRect;
+			using (GUIStateContext.Set(anchor: TextAnchor.MiddleCenter, font: GameFont.Medium)) {
+				headerRect = new Rect(contentsRect.x, contentsRect.y, contentsRect.width, 30f);
+				Widgets.Label(headerRect, "MapReroll_windowTitle".Translate());
+			}
 			
 			var layoutRect = new Rect(contentsRect.x, contentsRect.y + headerRect.yMax, contentsRect.width, contentsRect.height - headerRect.yMax);
 			GUILayout.BeginArea(layoutRect);
@@ -143,10 +142,9 @@ namespace MapReroll.UI {
 			Widgets.DrawTextureFitted(iconRect, icon, 1f);
 
 			var labelRect = new Rect(iconRect.xMax + ControlPadding, contentsRect.y, contentsRect.width - (iconRect.width + ControlPadding * 3), contentsRect.height);
-			var prevAnchor = Text.Anchor;
-			Text.Anchor = TextAnchor.MiddleCenter;
-			Widgets.Label(labelRect, label);
-			Text.Anchor = prevAnchor;
+			using (GUIStateContext.Set(anchor: TextAnchor.MiddleCenter)) {
+				Widgets.Label(labelRect, label);
+			}
 			if (hovering && !tooltip.NullOrEmpty()) {
 				TooltipHandler.TipRegion(controlRect, tooltip);
 			}

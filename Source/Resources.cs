@@ -27,6 +27,7 @@ namespace MapReroll {
 		[StaticConstructorOnStartup]
 		public static class Textures {
 			public static readonly Texture2D ResourceBarFull = SolidColorMaterials.NewSolidColorTexture(new Color(0.2f, 0.2f, 0.24f));
+			public static readonly Texture2D ButtonAtlas = ContentFinder<Texture2D>.Get("UI/Widgets/ButtonBG");
 			public static Texture2D UIRerollMapOn;
 			public static Texture2D UIRerollMapOff;
 			public static Texture2D UIRerollGeysersOn;

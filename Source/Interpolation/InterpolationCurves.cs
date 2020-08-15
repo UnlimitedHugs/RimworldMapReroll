@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+// ReSharper disable CompareOfFloatsByEqualityOperator
 
 namespace MapReroll.Interpolation {
 	public enum CurveType {
