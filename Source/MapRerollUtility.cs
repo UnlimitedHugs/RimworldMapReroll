@@ -37,14 +37,13 @@ namespace MapReroll {
 		}
 		
 		// button with improved disabled state. The stock button still reacts to mouse events when disabled.
-		internal static bool DrawActiveButton(Rect btnRect, string label, bool active, string tooltipKey = null) {
+		internal static bool DrawActiveButton(Rect btnRect, string label, bool active) {
 			var pressed = false;
 			if (active) {
 				pressed = Widgets.ButtonText(btnRect, label);
 			} else {
 				DrawDisabledButton(btnRect, label);
 			}
-			if (tooltipKey != null && Mouse.IsOver(btnRect)) TooltipHandler.TipRegion(btnRect, tooltipKey.Translate());
 			return pressed;
 		}
 

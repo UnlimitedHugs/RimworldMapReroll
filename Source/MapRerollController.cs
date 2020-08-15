@@ -204,19 +204,20 @@ namespace MapReroll {
 			worldMapSize.ContextMenuEntries = RerollToolbox.GetAvailableMapSizes().Where(kv => kv.Value != null)
 				.Select(kv => new ContextMenuEntry($"{kv.Value} ({kv.Key})", () => SetWorldDefaultMapSize(kv.Key)));
 			
-			var mapActions = Settings.GetHandle<bool>("mapActions", string.Empty, string.Empty);
+			var mapActions = Settings.GetHandle<bool>("mapActions", string.Empty, 
+				"setting_reenableRerolls_desc".Translate());
 			mapActions.Unsaved = true;
 			mapActions.CustomDrawer = MapActionsCustomDrawer;
 		}
 
 		private bool MapActionsCustomDrawer(Rect rect) {
-			DrawReenableRerollsButton(rect, "setting_reenableRerolls_btn", "setting_reenableRerolls_desc");
+			DrawReenableRerollsButton(rect, "setting_reenableRerolls_btn");
 			return false;
 			
-			void DrawReenableRerollsButton(Rect btnRect, string labelKey, string tooltipKey) {
+			void DrawReenableRerollsButton(Rect btnRect, string labelKey) {
 				var mapState = Find.CurrentMap?.GetComponent<MapComponent_MapRerollState>()?.State;
 				var buttonActive = mapState != null && mapState.MapCommitted;
-				if (MapRerollUtility.DrawActiveButton(btnRect, labelKey.Translate(), buttonActive, tooltipKey)
+				if (MapRerollUtility.DrawActiveButton(btnRect, labelKey.Translate(), buttonActive)
 					&& buttonActive) {
 					mapState.MapCommitted = false;
 					uiController.ResetCache();
