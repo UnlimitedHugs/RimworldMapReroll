@@ -417,7 +417,7 @@ namespace MapReroll {
 			map.glowGrid = null;
 			map.regionGrid = null;
 			map.terrainGrid = null;
-			map.pathGrid = null;
+			map.avoidGrid = null;
 			map.roofGrid = null;
 			map.fertilityGrid = null;
 			map.snowGrid = null;

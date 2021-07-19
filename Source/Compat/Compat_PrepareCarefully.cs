@@ -4,7 +4,7 @@ using HarmonyLib;
 using HugsLib;
 using Verse;
 
-namespace MapReroll {
+namespace MapReroll.Compat {
 	/// <summary>
 	/// Compatibility layer for EdB's Prepare Carefully mod.
 	/// Fixes the randomly changing genders of animals when rerolling starting maps.

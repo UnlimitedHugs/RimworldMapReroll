@@ -48,8 +48,8 @@ namespace MapReroll {
 				return;
 			}
 			var geyserDef = ThingDefOf.SteamGeyser;
-			var genStepDef = state.UsedMapGenerator.genSteps.FirstOrDefault(g => g.genStep is GenStep_ScatterThings
-																			&& (g.genStep as GenStep_ScatterThings).thingDef == geyserDef);
+			var genStepDef = state.UsedMapGenerator.genSteps.FirstOrDefault(g =>
+					(g.genStep as GenStep_ScatterThings)?.thingDef == geyserDef);
 			if (genStepDef == null) {
 				logger.Error($"Cannot reroll geysers: map generator {state.UsedMapGenerator} does not have a geyser GenStep");
 				return;
@@ -128,7 +128,7 @@ namespace MapReroll {
 			if (Find.World == null || Find.CurrentMap == null) return;
 			for (int i = 0; i < effects.Count; i++) {
 				var effect = effects[i];
-				MoteMaker.ThrowAirPuffUp(effect.Geyser.TrueCenter(), effect.Geyser.Map);
+				FleckMaker.ThrowAirPuffUp(effect.Geyser.TrueCenter(), effect.Geyser.Map);
 			}
 			effects.RemoveAll(a => Find.TickManager.TicksGame > a.ExpireTick);
 		}
