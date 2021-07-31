@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
 using HarmonyLib;
 using HugsLib;
 using MapReroll.UI;
@@ -26,13 +27,13 @@ namespace MapReroll.Compat {
 
 		// add a button to the previews dialog for easy access to terrain settings
 		private static void ExtraMapPreviewsDialogOnGUI(Dialog_MapPreviews previewsDialog, Rect inRect) {
+
 			var closeButtonSize = new Vector2(120f, 40f);
 			var configureButtonSize = new Vector2(140f, 40f);
 			var elementSpacing = 10f;
 			var buttonRect = new Rect(inRect.width - closeButtonSize.x - elementSpacing - configureButtonSize.x, inRect.yMax - configureButtonSize.y, configureButtonSize.x, configureButtonSize.y);
 			if (Widgets.ButtonText(buttonRect, "Reroll2_previews_configureMap".Translate())) {
-				var mod = LoadedModManager.ModHandles.FirstOrDefault(m => m.GetType().FullName == "ConfigurableMaps.Settings.TerrainSettingsController");
-				if (mod != null) {
+				if (TryGetMod(out Mod mod)) {
 					previewsDialog.Close();
 					var settingsDialog = new Dialog_ModSettings();
 					// pre-select the terrain settings Mod
@@ -48,7 +49,33 @@ namespace MapReroll.Compat {
 					}
 					TryReopenPreviews();
 				}
+				else
+                {
+					Log.Error("Failed to load config maps");
+                }
 			}
+		}
+
+		private static bool TryGetMod(out Mod mod) {
+			foreach (ModContentPack pack in LoadedModManager.RunningMods) {
+				foreach (Assembly assembly in pack.assemblies.loadedAssemblies) {
+					Type t = assembly.GetType("ConfigurableMaps.SettingsController");
+					if (t != null) {
+						try {
+							// This will have the window open to map settings
+							// Wrapping in a try/catch just in case this ever changes it won't cause map reroll to crash
+							assembly.GetType("ConfigurableMaps.Settings").GetMethod("OpenOnMapSettings", BindingFlags.Public | BindingFlags.Static).Invoke(null, null);
+						}
+						catch {
+							Log.Warning("failed to set to open to map settings");
+						}
+						mod = LoadedModManager.GetMod(t);
+						return mod != null;
+					}
+				}
+			}
+			mod = null;
+			return false;
 		}
 	}
 }
