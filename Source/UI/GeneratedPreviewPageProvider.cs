@@ -44,6 +44,9 @@ namespace MapReroll.UI {
 
 		private void EnsureEnoughPreviewsForPage(int page) {
 			while (previews.Count <= MaxIndexOnPage(page)) {
+				if (previews.Count == 0) {
+                    Compat.Compat_ConfigurableMaps.UpdateConfigs();
+				}
 				previews.Add(CreatePreview());
 			}
 		}
