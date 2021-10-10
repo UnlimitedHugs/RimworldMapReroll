@@ -4,6 +4,8 @@ using Verse;
 
 namespace MapReroll.UI {
 	public class GeneratedPreviewPageProvider : BasePreviewPageProvider {
+		public static event Action PageGenerationStarting;
+		
 		private readonly Map startingMap;
 		private readonly World world;
 		private MapPreviewGenerator previewGenerator;
@@ -44,6 +46,9 @@ namespace MapReroll.UI {
 
 		private void EnsureEnoughPreviewsForPage(int page) {
 			while (previews.Count <= MaxIndexOnPage(page)) {
+				if (previews.Count == 0) {
+					PageGenerationStarting?.Invoke();
+				}
 				previews.Add(CreatePreview());
 			}
 		}
